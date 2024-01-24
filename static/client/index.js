@@ -21,7 +21,7 @@ function WebSocketController(url) {
 
     this.ws.onmessage = function (event) {
         let e = JSON.parse(event.data);
-        self.listens[e.key] && self.listens[e.key](e.data);
+        self.listens[e[0]] && self.listens[e[0]](e[1]);
     };
 
     this.send = function (key, data) {

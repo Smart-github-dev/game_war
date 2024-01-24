@@ -78,24 +78,23 @@ const PlayerSocket = function (ws) {
             name: data.userNick.toLocaleUpperCase(),
             pass: data.userPassW.toLocaleUpperCase(),
           };
-          self.send({ key: LOGIN, data: { success: true } });
+          self.send(LOGIN, { success: true });
           self.logined = true;
         } else {
-          self.send({ key: LOGIN, data: { success: false, message: "You must enter 3+ characters" } });
+          self.send(LOGIN, { success: false, message: "You must enter 3+ characters" });
         }
         break;
       case FETCH_REQ:
-        self.send({
-          key: FETCH_RES, data: {
-            items: model.getItems().array.map(item => ({
-              id: item.id,
-              type: item.type,
-              x: item.x,
-              y: item.y
-            })),
-            map: model.getMap().square.map(row => row.map(c => c.type))
-          }
-        })
+        self.send(FETCH_RES, {
+          items: model.getItems().array.map(item => ({
+            id: item.id,
+            type: item.type,
+            x: item.x,
+            y: item.y
+          })),
+          map: model.getMap().square.map(row => row.map(c => c.type))
+        }
+        )
         break;
       case NEW_PLAYER_GREATE:
         if (self.player != null)
@@ -140,7 +139,7 @@ const PlayerSocket = function (ws) {
         break;
       case SEND_MSG:
         for (var p = 0; p < playerObjs.length; p++) {
-          playerObjs[p].send({ key: "msg", data: [self.userInfo.name, data] })
+          playerObjs[p].send("msg", [self.userInfo.name, data])
         }
         break;
     }
@@ -158,8 +157,8 @@ const PlayerSocket = function (ws) {
     i != -1 && playerObjs.splice(i, 1);
     console.log("player disconnected");
   });
-  this.send = (data) => {
-    let d = JSON.stringify(data);
+  this.send = (key, data) => {
+    let d = JSON.stringify([key, data]);
     netlength = d.length;
     ws.send(d);
   }
@@ -198,7 +197,7 @@ setInterval(function () {
 
   if (itemchanged.length > 0) {
     playerObjs.forEach(p => {
-      p.send({ key: SEND_ITEM_CHANGED, data: itemchanged });
+      p.send(SEND_ITEM_CHANGED, itemchanged);
     })
   }
 
@@ -223,7 +222,7 @@ function loop() {
 
           sendLeaderboard();
           thisPlayer.player.dropItem(model.getItems().array);
-          thisPlayer.send({ key: 'death' });
+          thisPlayer.send('death');
           thisPlayer.player = null;
         }
       }
@@ -256,7 +255,7 @@ function loop() {
         }
       }
 
-      thisPlayer.send({ key: UPDATE_KEY, data: [emitPlayers, [thisPlayer.x, thisPlayer.y], bullets] });
+      thisPlayer.send(UPDATE_KEY, [emitPlayers, [thisPlayer.x, thisPlayer.y], bullets]);
     }
   })
 }
@@ -264,7 +263,7 @@ function loop() {
 
 function sendLeaderboard() {
   playerObjs.forEach(p => {
-    p.send({ key: SEND_LEADERBORD, data: model.leaderboard.array });
+    p.send(SEND_LEADERBORD, model.leaderboard.array);
   });
 }
 
