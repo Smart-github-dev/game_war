@@ -1,7 +1,56 @@
 function Terrain(pathArg) {
-    this.path = pathArg;
+    this.sprite = new PIXI.Sprite(PIXI.loader.resources[pathArg].texture);
 }
+
 let user = {};
+let UPDATE_KEY = "0";
+let SEND_LEADERBORD = "1";
+let SEND_ITEM = "2";
+let SEND_ITEM_CHANGED = "3";
+let FETCH_REQ = "4";
+let FETCH_RES = "5";
+let INPUT_CONTROL = "6";
+let LOGIN = "7";
+let NEW_PLAYER_GREATE = "8";
+let PLAYER_REMOVE = "11";
+let SEND_MSG = '9'
+let DEATH = "10";
+let PLAY_OUT = "11";
+let WATCHING = '12';
+
+let HITBODY = "0";
+let HITBRICK = "2";
+let HITSHIELD = "1";
+
+let INVINCIBILITY = 0;
+let REALBODY = 1;
+let HIDDENBODY = 2;
+
+let ADDITEM = 0;
+let DELLITEM = 1;
+
+let ADDPLAYER = 0;
+let DELLPLAYER = 1;
+
+let PLAYER_CHANGE_EVENT = 1;
+let ITEM_CHANGE_EVENT = 0;
+
+let FETCH_PLAYERS = 0;
+let FETCH_ITEMS = 1;
+let FETCH_MAP = 2;
+
+
+let ITEMS = {
+    SHIELD: 0,
+    WEAPON1: 1,
+    WEAPON2: 2,
+    WEAPON3: 3,
+    WEAPON4: 4,
+    WEAPON5: 5,
+    WEAPON6: 6,
+    HEALTH: 7,
+    HMEDCINE: 8
+}
 
 
 function WebSocketController(url) {
@@ -25,7 +74,7 @@ function WebSocketController(url) {
     };
 
     this.send = function (key, data) {
-        self.ws.send(JSON.stringify({ key, data }));
+        self.ws.send(JSON.stringify([key, data]));
     };
 
     this.ws.onclose = function (event) {
@@ -41,65 +90,96 @@ function WebSocketController(url) {
             let _user = JSON.parse(storage);
             if (((Date.now() - _user.time) / 1000) / 60 < 30) { //expire time 30min
                 user = { userNick: _user.userNick.toLocaleUpperCase(), userPassW: _user.userPassW.toLocaleUpperCase() };
-                socket.send("login", { userNick: _user.userNick, userPassW: _user.userPassW });
+                socket.send(LOGIN, { userNick: _user.userNick, userPassW: _user.userPassW });
             } else {
                 localStorage.removeItem("user-info")
             }
         }
     }
+
+    this.listen = function () {
+        this.listens[LOGIN] = function (data) {
+            if (data.success) {
+                initGame();
+                $("#login-page").hide();
+                $("#chatbox").show();
+                localStorage.setItem("user-info", JSON.stringify({
+                    userNick: user.userNick.toLocaleUpperCase(),
+                    userPassW: user.userPassW.toLocaleUpperCase(),
+                    token: data.token,
+                    time: Date.now()
+                }));
+                toast(data.message);
+            } else {
+                toast(data.message);
+                loadinghidden();
+            }
+        }
+
+        this.listens['STATUS'] = function (msg) {
+            toast(msg);
+            $("#login-page").hide();
+        }
+    }
 }
 
 let socket = new WebSocketController();
-
-let gameMap = new GameMap();
-let players = [];
-let bullets = [];
-var items = [];
-var leaderboard = [];
-
-let camera = {
-    x: 0,
-    y: 0
-}
+socket.listen();
 
 let itemInfos = {
-    "health": {
-        sprite: "healthPack.png",
+    7: {
+        sprite: "healthPack",
         w: 50,
+        h: 50,
+    },
+    0: {
+        sprite: "shield",
+        w: 20,
+        h: 60,
+        distance: 20
+    },
+    8: {
+        sprite: "hidden_medicine",
+        w: 20,
         h: 50
     },
-    "weapon1": {
-        sprite: "pistol.png",
+    1: {
+        sprite: "pistol",
         w: 30,
-        h: 18
+        h: 18,
+        distance: 10
     },
-    "weapon6": {
-        sprite: "revolver.png",
+    6: {
+        sprite: "revolver",
         w: 40,
-        h: 20
+        h: 20,
+        distance: 10
     },
-    "weapon2": {
-        sprite: "doublePistols.png",
+    2: {
+        sprite: "doublePistols",
         w: 30,
-        h: 48
+        h: 48,
+        distance: 10
     },
-    "weapon3": {
-        sprite: "rifle.png",
+    3: {
+        sprite: "rifle",
         w: 73,
-        h: 18
+        h: 18,
+        distance: 10
     },
-    "weapon4": {
-        sprite: "smg.png",
+    4: {
+        sprite: "smg",
         w: 50,
-        h: 20
+        h: 20,
+        distance: 10
     },
-    "weapon5": {
-        sprite: "gatling.png",
+    5: {
+        sprite: "gatling",
         w: 90,
-        h: 33
+        h: 33,
+        distance: 10
     }
 };
-
 
 let currentPlayer = new CurrentPlayer();
 ////////////////////////////////////////////////////////////////////////////////
@@ -113,6 +193,7 @@ let input = {
 
 
 let touchRPos = {
+    s: false,
     t: false,
     sx: 0,
     sy: 0,
@@ -120,6 +201,7 @@ let touchRPos = {
     my: 0
 }
 let touchLPos = {
+    s: false,
     t: false,
     sx: 0,
     sy: 0,
@@ -127,200 +209,37 @@ let touchLPos = {
     my: 0
 }
 
-window.addEventListener(
-    "touchstart",
-    (event) => {
-        event.preventDefault();
-        let touchOne = null;
-        let touchTwo = null;
-        if (event.touches.length >= 2) {
-            touchTwo = event.touches[1];
-            if (touchTwo.clientX <= window.innerWidth / 2) {
-                touchLPos.sx = touchTwo.clientX;
-                touchLPos.sy = touchTwo.clientY;
-                touchLPos.mx = touchTwo.clientX;
-                touchLPos.my = touchTwo.clientY;
-                input.m = true;
-                touchLPos.t = true;
-            } else {
-                touchRPos.sx = touchTwo.clientX;
-                touchRPos.sy = touchTwo.clientY;
-                touchRPos.mx = touchTwo.clientX;
-                touchRPos.my = touchTwo.clientY;
-                touchRPos.t = true;
-            }
-        } else {
-            touchOne = event.touches[0];
-            if (touchOne.clientX <= window.innerWidth / 2) {
-                touchLPos.sx = touchOne.clientX;
-                touchLPos.sy = touchOne.clientY;
-                touchLPos.mx = touchOne.clientX;
-                touchLPos.my = touchOne.clientY;
-                input.m = true;
-                touchLPos.t = true;
-            } else {
-                touchRPos.sx = touchOne.clientX;
-                touchRPos.sy = touchOne.clientY;
-                touchRPos.mx = touchOne.clientX;
-                touchRPos.my = touchOne.clientY;
-                touchRPos.t = true;
-            }
-        }
-    },
-    { passive: false }
-);
-
-window.addEventListener(
-    "touchmove",
-    (event) => {
-        event.preventDefault();
-        let touchOne = null;
-        let touchTwo = null;
-        if (event.touches.length >= 2) {
-            touchOne = event.touches[0];
-            touchTwo = event.touches[1];
-            if (touchOne.clientX <= window.innerWidth / 2) {
-                touchLPos.mx = touchOne.clientX;
-                touchLPos.my = touchOne.clientY;
-                input.direction = getAngle(touchLPos.sx, touchLPos.sy, touchLPos.mx, touchLPos.my);
-                // input.mangle = input.direction;
-                touchLPos.t = true;
-            }
-            if (touchOne.clientX > window.innerWidth / 2) {
-                touchRPos.mx = touchOne.clientX;
-                touchRPos.my = touchOne.clientY;
-                touchRPos.t = true;
-                input.LMB = true;
-
-                input.mangle = getAngle(touchRPos.sx, touchRPos.sy, touchRPos.mx, touchRPos.my);
-            }
-            if (touchTwo) {
-                if (touchTwo.clientX <= window.innerWidth / 2) {
-                    touchLPos.mx = touchTwo.clientX;
-                    touchLPos.my = touchTwo.clientY;
-                    touchLPos.t = true;
-                    input.direction = getAngle(touchLPos.sx, touchLPos.sy, touchLPos.mx, touchLPos.my);
-                    // input.mangle = input.direction;
-                }
-                if (touchTwo.clientX > window.innerWidth / 2) {
-                    touchRPos.t = true;
-                    touchRPos.mx = touchTwo.clientX;
-                    touchRPos.my = touchTwo.clientY;
-                    input.LMB = true;
-
-                    input.mangle = getAngle(touchRPos.sx, touchRPos.sy, touchRPos.mx, touchRPos.my);
-                }
-            }
-        } else {
-            touchOne = event.changedTouches[0];
-            if (touchOne.clientX <= window.innerWidth / 2) {
-                touchLPos.mx = touchOne.clientX;
-                touchLPos.my = touchOne.clientY;
-                touchLPos.t = true;
-                input.direction = getAngle(touchLPos.sx, touchLPos.sy, touchLPos.mx, touchLPos.my);
-                // input.mangle = input.direction;
-
-            } else {
-                touchRPos.mx = touchOne.clientX;
-                touchRPos.my = touchOne.clientY;
-                touchRPos.t = true;
-                input.LMB = true;
-                input.mangle = getAngle(touchRPos.sx, touchRPos.sy, touchRPos.mx, touchRPos.my);
-            }
-        }
-    },
-    { passive: false }
-);
-
-window.addEventListener(
-    "touchend",
-    (event) => {
-        event.preventDefault();
-        let touch = null;
-        if (event.touches.length > 0) {
-            touch = event.touches[0];
-            if (touch.clientX <= window.innerWidth / 2) {
-                input.m = false;
-                touchLPos.t = true;
-            } else {
-                touchRPos.t = true;
-                input.LMB = false;
-            }
-        } else {
-
-        }
-    },
-    { passive: false }
-);
-
-window.addEventListener(
-    "dbclick",
-    (event) => {
-        event.preventDefault();
-    },
-    { passive: false }
-);
 
 let keys = []
 
-window.addEventListener('keydown', function (e) {
-    keys = (keys || []);
-    keys[e.keyCode] = (e.type == "keydown");
-});
-
-window.addEventListener('keyup', function (e) {
-    keys[e.keyCode] = (e.type == "keydown");
-});
-
-
-document.addEventListener('mousemove', function (event) {
-    let arg = (event.y - window.innerHeight / 2) / (event.x - window.innerWidth / 2);
-    if (event.x >= window.innerWidth / 2)
-        currentPlayer.direction = Math.atan(arg);
-    else
-        currentPlayer.direction = Math.PI - Math.atan((-1) * arg);
-    input.direction = currentPlayer.direction;
-}
-);
-
-document.addEventListener("mousedown", function () {
-    input.LMB = true;
-});
-
-document.addEventListener("mouseup", function () {
-    input.LMB = false;
-});
-
-window.onresize = resize;
 
 
 
 function loadingshow() {
-    document.getElementById("loding").style = "display:block";
+    $("#loding").show();
 }
 
 function loadinghidden() {
-    document.getElementById("loding").style = "display:none";
+    $("#loding").hide();
 }
 
-loadinghidden();
-$("#chatbox").hide();
-$("#main-page").hide();
 
 function getAngle(x1, y1, x2, y2) {
     return Math.atan2(y2 - y1, x2 - x1);
 }
 
-
+let mouseposition = { x: 0, y: 0 };
 
 $(document).ready(function () {
-        console.log(2);
+    loadinghidden();
+    $("#chatbox").hide();
+    $("#main-page").hide();
 
     $("#loginBtn").click(function () {
         let userNick = document.getElementById("userName").value;
         let userPassW = document.getElementById("userPassW").value;
         if (userNick != "") {
-            socket.send("login", { userNick, userPassW });
+            socket.send(LOGIN, { userNick, userPassW });
             loadingshow();
             user = { userNick: userNick.toLocaleUpperCase(), userPassW: userPassW.toLocaleUpperCase() };
         } else {
@@ -328,33 +247,155 @@ $(document).ready(function () {
         }
     })
 
-
     $(".inputchat").on("keypress", function (e) {
-        if (e.keyCode == 13) {
-            socket.send("msg", e.target.value);
+        if (e.keyCode == 13 && e.target.value.length > 0) {
+            socket.send(SEND_MSG, e.target.value);
             e.target.value = "";
         }
     })
 
+    window.onresize = resize;
 
-    socket.listens["login"] = function (data) {
-        if (data.success) {
-            initGame();
-            $("#login-page").hide();
-            $("#chatbox").show();
-            localStorage.setItem("user-info", JSON.stringify({
-                userNick: user.userNick.toLocaleUpperCase(),
-                userPassW: user.userPassW.toLocaleUpperCase(),
-                time: Date.now()
-            }));
+    window.addEventListener('keydown', function (e) {
+        keys = (keys || []);
+        keys[e.keyCode] = (e.type == "keydown");
+    });
 
-        } else {
-            alert(data.message);
-            loadinghidden();
+    window.addEventListener('keyup', function (e) {
+        keys[e.keyCode] = (e.type == "keydown");
+    });
+
+    window.addEventListener('touchstart', (event) => {
+        let touch = null;
+        for (let j = 0; j < event.touches.length; j++) {
+            touch = event.touches[j];
+            if (touch.clientX <= window.innerWidth / 2) {
+                touchLPos.sx = touch.clientX;
+                touchLPos.sy = touch.clientY;
+                touchLPos.mx = touch.clientX;
+                touchLPos.my = touch.clientY;
+                touchLPos.s = true;
+            } else {
+                touchRPos.sx = touch.clientX;
+                touchRPos.sy = touch.clientY;
+                touchRPos.mx = touch.clientX;
+                touchRPos.my = touch.clientY;
+                touchRPos.s = true;
+                touchRPos.t = true;
+                input.LMB = true;
+            }
         }
-    }
+    });
+    window.addEventListener('touchmove', (event) => {
+        for (let k = 0; k < event.touches.length; k++) {
+            let touch = event.touches[k];
+            if (touch.clientX <= window.innerWidth / 2) {
+                if (touchLPos.s) {
+                    touchLPos.mx = touch.clientX;
+                    touchLPos.my = touch.clientY;
+                    touchLPos.t = true;
+                    input.m = true;
+                    input.mangle = getAngle(touchLPos.sx, touchLPos.sy, touchLPos.mx, touchLPos.my);
+                }
+            } else {
+                if (touchRPos.s) {
+                    touchRPos.mx = touch.clientX;
+                    touchRPos.my = touch.clientY;
+                    touchRPos.t = true;
+                    input.direction = getAngle(touchRPos.sx, touchRPos.sy, touchRPos.mx, touchRPos.my);
+                }
+            }
+        }
+    });
 
+    window.addEventListener('touchend',
+        (event) => {
+            let touch = null;
+            if (event.changedTouches.length > 0) {
+                for (let i = 0; i < event.changedTouches.length; i++) {
+                    touch = event.changedTouches[i];
+                    if (event.touches.length > 0) {
+                        if (touch.clientX <= window.innerWidth / 2) {
+                            input.m = false;
+                            touchLPos.t = false;
+                            touchLPos.s = false;
+                        } else {
+                            touchRPos.t = false;
+                            touchRPos.s = false;
+                            input.LMB = false;
+                        }
+                    } else if (event.touches.length == 0) {
+                        if (touchLPos.t) {
+                            input.m = false;
+                            touchLPos.t = false;
+                            touchLPos.s = false;
+                        }
+
+                        if (touchRPos.t) {
+                            touchRPos.t = false;
+                            touchRPos.s = false;
+                            input.LMB = false;
+                        }
+                    }
+                }
+            }
+        });
+
+    window.addEventListener('mousedown', function () {
+        input.LMB = true;
+    });
+    window.addEventListener('mouseup', function () {
+        input.LMB = false;
+    });
+    window.addEventListener('mousemove', function (event) {
+        mouseposition.x = event.x;
+        mouseposition.y = event.y;
+        input.direction = getAngle(window.innerWidth / 2, window.innerHeight / 2, event.x, event.y);
+    });
 })
 
+function distance(x1, y1, x2, y2) {
+    const deltaX = x2 - x1;
+    const deltaY = y2 - y1;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    return distance;
+}
 
 
+function resize() {
+    let scale = window.innerHeight / controller.height;
+    if (window.innerHeight > window.innerWidth) {
+        scale = window.innerWidth / controller.width;
+    }
+    app.renderer.resize(window.innerWidth, window.innerHeight);
+    mainContainer.width = controller.width * scale;
+    mainContainer.height = controller.height * scale;
+    mainContainer.scale.set(scale);
+    mainContainer.position.set((window.innerWidth - mainContainer.width) / 2, (window.innerHeight - mainContainer.height) / 2);
+    containerMask.clear();
+    containerMask.beginFill(0x000000);
+    containerMask.drawRect(mainContainer.position.x, mainContainer.position.y, mainContainer.width, mainContainer.height);
+    containerMask.endFill();
+}
+
+function toast(text) {
+    Toastify({
+        text: text,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "center", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+        onClick: function () { } // Callback after click
+    }).showToast();
+}
+
+
+
+function isMobileDevice() {
+    return /Mobi|Android/i.test(navigator.userAgent);
+}

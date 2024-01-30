@@ -1,11 +1,41 @@
-module.exports.UPDATE_KEY = "update";
-module.exports.SEND_LEADERBORD = "leaderbord";
-module.exports.SEND_ITEM = "items";
-module.exports.SEND_ITEM_CHANGED = "items_change";
-module.exports.FETCH_REQ = "fetch_req";
-module.exports.FETCH_RES = "fetch_res";
-module.exports.INPUT_CONTROL = "input";
-module.exports.LOGIN = "login";
-module.exports.NEW_PLAYER_GREATE = "new_player";
-module.exports.SEND_MSG='msg'
+module.exports.UPDATE_KEY = "0";
+module.exports.SEND_LEADERBORD = "1";
+module.exports.SEND_ITEM = "2";
+module.exports.SEND_ITEM_CHANGED = "3";
+module.exports.FETCH_REQ = "4";
+module.exports.FETCH_RES = "5";
+module.exports.INPUT_CONTROL = "6";
+module.exports.LOGIN = "7";
+module.exports.NEW_PLAYER_GREATE = "8";
+module.exports.PLAYER_REMOVE = "11";
+module.exports.SEND_MSG = '9'
+module.exports.DEATH = "10";
+module.exports.PLAY_OUT = '11';
+module.exports.WATCHING = '12';
 
+module.exports.HITBODY = "0";
+module.exports.HITBRICK = "2";
+module.exports.HITSHIELD = "1";
+
+module.exports.INVINCIBILITY = 0;
+module.exports.REALBODY = 1;
+module.exports.HIDDENBODY = 2;
+
+module.exports.ADDITEM = 0;
+module.exports.DELLITEM = 1;
+
+module.exports.FETCH_PLAYERS = 0;
+module.exports.FETCH_ITEMS = 1;
+module.exports.FETCH_MAP = 2;
+
+module.exports.ITEMS = {
+    SHIELD: 0,
+    WEAPON1: 1,
+    WEAPON2: 2,
+    WEAPON3: 3,
+    WEAPON4: 4,
+    WEAPON5: 5,
+    WEAPON6: 6,
+    HEALTH: 7,
+    HMEDCINE: 8
+}

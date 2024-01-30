@@ -3,13 +3,17 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Game</title>
+  <title>Multicopverse</title>
   <link rel="stylesheet" href="/client/game.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script disable-devtool-auto src='https://cdn.jsdelivr.net/npm/disable-devtool'></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+  <!-- <script disable-devtool-auto src='https://cdn.jsdelivr.net/npm/disable-devtool'></script> -->
 </head>
 <script src="/client/pixi/pixi.min.js"></script>
 <script src="/client/controller.js"></script>
@@ -42,23 +46,34 @@
     <div class="main-menu d-flex flex-column" id="menu">
       <div class="text-primary text-align-center pb-0 h4">Are you ready?</div>
       <div class="text-align-center p-2 pt-0 text-danger">click the start button</div>
-      <div class="btn-group-vertical ">
-        <button type="button" class="btn btn-secondary" onclick="gameStart()">Let's start >></button>
+      <div class="btn-group ">
+        <button type="button" class="btn btn-info" onclick="gameStart()">Let's start >></button>
+        <button type="button" class="btn btn-warning" onclick="gameWatch()">Watching.. >></button>
+      </div>
+      <div class="d-flex">
+        <a href="https://discord.com/channels/1199041445751947456" class="btn btn-sm">
+          <img src="./client/img/discord-mark-blue.svg" width="50px" height="50px" alt="descord">
+        </a>
       </div>
     </div>
   </div>
   <div id="chatbox">
     <div class="msbox" id="chat-box"></div>
     <div class="inputbox">
-      <input type="text" class="inputchat" placeholder=">here some text"  />
+      <input type="text" class="inputchat" placeholder=">here some text" />
     </div>
   </div>
+  <script src="/client/view.js"></script>
+  <script src="/client/index.js"></script>
   <script>
     "use strict";
     var controller = new Controller();
+    let center = {
+      offx: controller.width / 2,
+      offy: controller.height / 2
+    }
+    resize();
   </script>
-  <script src="/client/view.js"></script>
-  <script src="/client/index.js"></script>
 </body>
 
 </html>

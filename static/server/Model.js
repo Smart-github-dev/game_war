@@ -1,5 +1,21 @@
 'use strict';
 
+const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM } = require("../../gameTypeConfig");
+const { distance } = require("../../utills");
+
+
+const {
+  SHIELD,
+  WEAPON1,
+  WEAPON2,
+  WEAPON3,
+  WEAPON5,
+  WEAPON6,
+  WEAPON4,
+  HEALTH,
+  HMEDCINE
+} = ITEMS;
+
 class Terrain {
   constructor(speedArg, typeArg, damageArg, isPassableArg) {
     this.speed = speedArg;
@@ -14,9 +30,9 @@ let sand = new Terrain(3, 'sand', 0, 1);
 let edge = new Terrain(3, 'edge', 0, 0);
 let grass = new Terrain(5, 'grass', 0, 1);
 let water = new Terrain(2, 'water', 0, 1);
-let lava = new Terrain(10, 'lava', 5, 1);
+let lava = new Terrain(7, 'lava', 5, 1);
 let brick = new Terrain(3, 'brick', 0, 0);
-let floor = new Terrain(6, 'floor', 0, 1);
+let floor = new Terrain(5, 'floor', 0, 1);
 
 class Point {
   constructor(xArg, yArg) {
@@ -175,42 +191,43 @@ class Player {
     this.health = healthArg;
     this.direction = directionArg;
     this.name = nameArg;
-    this.weapon = new Pistol();
+    this.take = new Pistol();
     this.score = 0;
     this.killedBy = "notAPlayer";
-    this.r = 25;
+    this.r = 30;
+    this.status = INVINCIBILITY;
+    this.statusTime = 176;
   }
 
   pickUpItem(item, items, changed) {
-    if (!(this.weapon instanceof Pistol))
+    if (!(this.take instanceof Pistol))
       this.dropItem(items, changed);
-    this.weapon = item;
+    this.take = item;
   }
 
   dropItem(items, changed) {
-
     let dirX = -1;
     if (Math.random() > 0.5)
       dirX = 1;
     let dirY = -1;
     if (Math.random() > 0.5)
       dirY = 1;
-    this.weapon.x = this.x + 100 * dirX;
-    this.weapon.y = this.y + 100 * dirY;
-    if (!(this.weapon instanceof Pistol)) {
+    this.take.x = this.x + 100 * dirX;
+    this.take.y = this.y + 100 * dirY;
+    if (!(this.take instanceof Pistol)) {
       let oldw = {
         ...{
-          type: "add",
-          weapon: {
-            id: this.weapon.id,
-            type: this.weapon.type,
-            x: this.weapon.x,
-            y: this.weapon.y
+          type: ADDITEM,
+          take: {
+            id: this.take.id,
+            type: this.take.type,
+            x: parseInt(this.take.x),
+            y: parseInt(this.take.y)
           }
         }
       }
       changed && changed(oldw);
-      items.push(this.weapon);
+      items.push(this.take);
     }
   }
 
@@ -226,6 +243,7 @@ class Bullet {
     this.distanceTraveled = 0;
     this.damage = damageArg;
     this.owner = ownerArg;
+    this.id = generateitemId('b')
   };
 
 }
@@ -235,12 +253,13 @@ class BulletPhysics {
     this.bullets = [];
   }
 
-  update(map) {
+  update(map, hitPush) {
     for (let i = 0; i < this.bullets.length; i++) {
       this.bullets[i].x += parseFloat(this.bullets[i].speed * Math.cos(this.bullets[i].direction));
       this.bullets[i].y += parseFloat(this.bullets[i].speed * Math.sin(this.bullets[i].direction));
       this.bullets[i].distanceTraveled += this.bullets[i].speed;
-      if (!map.square[Math.floor((this.bullets[i].y) / 50)][Math.floor((this.bullets[i].x) / 50)].isPassable) {
+      if (!map.square[Math.floor((this.bullets[i].y) / 50)][Math.floor((this.bullets[i].x) / 50)]?.isPassable) {
+        hitPush([HITBRICK, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
         this.bullets.splice(i, 1);
         i--;
       }
@@ -255,19 +274,30 @@ class BulletPhysics {
         length--;
         i--;
       }
-
     }
   }
 
-  checkHits(players) {
+  checkHits(players, hitPush) {
     for (let j = 0; j < players.length; j++) {
       let player = players[j];
       for (let i = 0; i < this.bullets.length; i++) {
+        if (player.take instanceof Tool) {
+          if (player.take.run(this.bullets[i])) {
+            hitPush([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
+            this.bullets.splice(i, 1);
+            return;
+          }
+        }
         if (this.bullets[i].x >= player.x - player.r / 2 && this.bullets[i].x <= player.x + player.r / 2 && this.bullets[i].y >= player.y - player.r / 2 && this.bullets[i].y <= player.y + player.r / 2) {
           if (this.bullets[i].owner != player.id) {
-            player.health -= this.bullets[i].damage;
-            if (player.health <= 0)
-              player.killedBy = this.bullets[i].owner;
+            if (player.status !== INVINCIBILITY) {
+              player.health -= this.bullets[i].damage;
+              if (player.health <= 0)
+                player.killedBy = this.bullets[i].owner;
+              hitPush([HITBODY, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y), this.bullets[i].damage]);
+            } else {
+              hitPush([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
+            }
             this.bullets.splice(i, 1);
             i--;
           }
@@ -283,6 +313,9 @@ class Item {
     this.x = x;
     this.y = y;
   }
+  pos() {
+
+  }
 }
 
 class Items {
@@ -296,22 +329,21 @@ class Items {
       let player = players[j];
       for (let i = 0; i < this.array.length; i++) {
         if (this.array[i].x >= player.x - this.array[i].spriteWidth && this.array[i].x <= player.x + this.array[i].spriteWidth && this.array[i].y >= player.y - this.array[i].spriteHeight && this.array[i].y <= player.y + this.array[i].spriteHeight) {
-          if (this.array[i] instanceof Weapon) {
+          if (this.array[i] instanceof Weapon || this.array[i] instanceof Shield) {
             player.pickUpItem(this.array[i], this.array, changed);
             changed({
               ...{
-                type: "dell",
+                type: DELLITEM,
                 id: this.array[i].id
               }
             });
             this.array.splice(i, 1);
             i--;
           }
-          else if (player.health < 1000) {
-            this.array[i].heal(player);
+          else if (this.array[i].apply(player)) {
             changed({
               ...{
-                type: "dell",
+                type: DELLITEM,
                 id: this.array[i].id
               }
             });
@@ -327,10 +359,11 @@ class Items {
     let gatling = new Gatling();
     gatling.x = 2500;
     gatling.y = 2500;
+    gatling.id = generateitemId(this.array.length);
     this.array.push(gatling);
     for (let i = 0; i < amount; i++) {
       let item = new Item();
-      switch (Math.floor(Math.random() * 6)) {
+      switch (Math.floor(Math.random() * 8)) {
 
         case 0:
           item = new DoublePistol();
@@ -355,7 +388,12 @@ class Items {
         case 5:
           item = new HealthPack();
           break;
-
+        case 6:
+          item = new Shield();
+          break;
+        case 7:
+          item = new HiddenMedicine();
+          break;
       }
       let newX, newY;
       do {
@@ -376,20 +414,85 @@ class HealthPack extends Item {
   constructor() {
     super();
     this.healthGain = 500;
-    this.type = "health";
+    this.type = HEALTH;
     this.spriteName = "healthPack.png";
     this.spriteWidth = 50;
     this.spriteHeight = 50;
   }
+  apply(player) {
+    if (player.health < 1000) {
+      player.health += this.healthGain;
+      if (player.health > 1000) {
+        player.health = 1000;
+      }
+      return true;
+    }
+    return false;
+  }
+}
 
-  heal(player) {
-    player.health += this.healthGain;
-    if (player.health > 1000) {
-      player.health = 1000;
+class HiddenMedicine extends Item {
+  constructor() {
+    super();
+    this.type = HMEDCINE;
+    this.spriteName = "hidden_medicine.png";
+    this.spriteWidth = 20;
+    this.spriteHeight = 50;
+    this.hiddentime = 200;
+  }
+  apply(player) {
+    if (player.status == REALBODY) {
+      player.statusTime = this.hiddentime;
+      player.status = HIDDENBODY;
+      return true;
+    }
+    return false;
+  }
+}
+
+class Tool extends Item {
+  constructor() {
+    super();
+  }
+
+  pos() {
+  }
+}
+
+module.exports.Tool = Tool;
+
+class Shield extends Tool {
+  constructor(type, rate) {
+    super();
+    this.type = SHIELD;
+    this.spriteName = "shield";
+    this.spriteWidth = 20;
+    this.spriteHeight = 60;
+    this.triggered = 0;
+    this.distance = 30;
+  }
+
+  pos(player) {
+    this.x = player.x + this.distance * Math.cos(player.direction);
+    this.y = player.y + this.distance * Math.sin(player.direction);
+  }
+  apply(obj) {
+    if (!this.triggered) {
+      this.triggered = 1;
     }
   }
 
+  run(obj) {
+    if (obj instanceof Bullet) {
+      if (distance(obj.x, obj.y, this.x, this.y) < this.spriteWidth) {
+        return true
+      }
+    }
+    return false;
+  }
+
 }
+
 
 class Weapon extends Item {
   constructor(dmg, acc, fRate) {
@@ -412,7 +515,10 @@ class AutomaticWeapon extends Weapon {
     super(dmg, acc, fireRate);
   };
 
-  shoot(x, y, direction, bulletPhysics, shooter) {
+  apply(x, y, direction, bulletPhysics, shooter, player) {
+    if (statusApply(player)) {
+      return;
+    }
     let time = new Date();
     if (time - this.lastShot >= this.fireRate) {
       this.lastShot = time;
@@ -429,7 +535,10 @@ class SemiAutomaticWeapon extends Weapon {
     super(dmg, acc, fireRate);
   };
 
-  shoot(x, y, direction, bulletPhysics, shooter) {
+  apply(x, y, direction, bulletPhysics, shooter, player) {
+    if (statusApply(player)) {
+      return;
+    }
     let time = new Date();
     if (!this.triggered && time - this.lastShot >= this.fireRate) {
       this.lastShot = time;
@@ -445,8 +554,8 @@ class SemiAutomaticWeapon extends Weapon {
 class Pistol extends SemiAutomaticWeapon {
   constructor() {
     super(300, 95, 400);
-    this.type = "weapon1";
-    this.spriteName = "pistol.png";
+    this.type = WEAPON1;
+    this.spriteName = "pistol";
     this.spriteWidth = 30;
     this.spriteHeight = 18;
   }
@@ -455,8 +564,8 @@ class Pistol extends SemiAutomaticWeapon {
 class Revolver extends SemiAutomaticWeapon {
   constructor() {
     super(600, 100, 500);
-    this.type = "weapon6";
-    this.spriteName = "revolver.png";
+    this.type = WEAPON6;
+    this.spriteName = "revolver";
     this.spriteWidth = 40;
     this.spriteHeight = 20;
   }
@@ -465,13 +574,16 @@ class Revolver extends SemiAutomaticWeapon {
 class DoublePistol extends SemiAutomaticWeapon {
   constructor() {
     super(300, 95, 400);
-    this.type = "weapon2";
-    this.spriteName = "doublePistols.png";
+    this.type = WEAPON2;
+    this.spriteName = "doublePistols";
     this.spriteWidth = 30;
-    this.spriteHeight = 48;
+    this.spriteHeight = 40;
   }
 
-  shoot(x, y, direction, bulletPhysics, shooter) {
+  apply(x, y, direction, bulletPhysics, shooter, player) {
+    if (statusApply(player)) {
+      return;
+    }
     let time = new Date();
     if (!this.triggered && time - this.lastShot >= this.fireRate) {
       this.lastShot = time;
@@ -491,8 +603,8 @@ class DoublePistol extends SemiAutomaticWeapon {
 class Rifle extends AutomaticWeapon {
   constructor() {
     super(400, 98, 150);
-    this.type = "weapon3";
-    this.spriteName = "rifle.png";
+    this.type = WEAPON3;
+    this.spriteName = "rifle";
     this.spriteWidth = 73;
     this.spriteHeight = 18;
   }
@@ -502,8 +614,8 @@ class Rifle extends AutomaticWeapon {
 class Smg extends AutomaticWeapon {
   constructor() {
     super(100, 80, 50);
-    this.type = "weapon4";
-    this.spriteName = "smg.png";
+    this.type = WEAPON4;
+    this.spriteName = "smg";
     this.spriteWidth = 50;
     this.spriteHeight = 20;
   }
@@ -512,8 +624,8 @@ class Smg extends AutomaticWeapon {
 class Gatling extends AutomaticWeapon {
   constructor() {
     super(300, 70, 15);
-    this.type = "weapon5";
-    this.spriteName = "gatling.png";
+    this.type = WEAPON5;
+    this.spriteName = "gatling";
     this.spriteWidth = 90;
     this.spriteHeight = 33;
   }
@@ -521,9 +633,9 @@ class Gatling extends AutomaticWeapon {
 
 
 class Entry {
-  constructor(name, socketId, score) {
+  constructor(name, id, score) {
     this.name = name;
-    this.socketId = socketId;
+    this.id = id;
     this.score = score;
   }
 }
@@ -533,26 +645,37 @@ class Leaderboard {
     this.array = [];
   }
 
-  addEntry(name, socketId, score) {
-    this.array.push(new Entry(name, socketId, score));
-    this.sort();
+  addEntry(name, id, score) {
+    this.array.push(new Entry(name, id, score));
+    return this.sort();
   }
 
-  addPoint(socketId) {
+  addPoint(id) {
     for (let i = 0; i <= this.array.length; i++) {
-      if (this.array[i].socketId == socketId) {
-        console.log("added");
+      if (this.array[i]?.id == id) {
         this.array[i].score++;
         break;
       }
     }
-    this.sort();
+
+    return this.sort();
+  }
+
+  remove(id) {
+    for (let i = 0; i <= this.array.length; i++) {
+      if (this.array[i]?.id == id) {
+        this.array.splice(i, 1);
+        break;
+      }
+    }
+    return this.array;
   }
 
   sort() {
-    this.array.sort(function (a, b) {
-      return a.score < b.score;
+    this.array = this.array.sort(function (a, b) {
+      return b.score - a.score;
     });
+    return this.array;
   }
 }
 
@@ -589,41 +712,7 @@ class Model {
 
   getItemInfos() {
     let itemInfos = {
-      "health": {
-        sprite: "healthPack.png",
-        w: 50,
-        h: 50
-      },
-      "weapon1": {
-        sprite: "pistol.png",
-        w: 30,
-        h: 18
-      },
-      "weapon6": {
-        sprite: "revolver.png",
-        w: 40,
-        h: 20
-      },
-      "weapon2": {
-        sprite: "doublePistols.png",
-        w: 30,
-        h: 48
-      },
-      "weapon3": {
-        sprite: "rifle.png",
-        w: 73,
-        h: 18
-      },
-      "weapon4": {
-        sprite: "smg.png",
-        w: 50,
-        h: 20
-      },
-      "weapon5": {
-        sprite: "gatling.png",
-        w: 90,
-        h: 33
-      }
+
     };
     return itemInfos;
   }
@@ -632,6 +721,17 @@ class Model {
 module.exports = Model;
 
 
+
 function generateitemId(key) {
-  return Date.now() + "item" + key;
+  return Math.random().toString(36).substr(2, 3) + key;
+}
+
+function statusApply(player) {
+  if (player.status == INVINCIBILITY) {
+    return true;
+  }
+  if (player.status == HITBODY) {
+    player.status = REALBODY;
+  }
+  return false;
 }

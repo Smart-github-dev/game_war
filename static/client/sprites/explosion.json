@@ -1,0 +1,78 @@
+{"frames": {
+
+"expol-1.png":
+{
+	"frame": {"x":1,"y":1097,"w":97,"h":100},
+	"rotated": true,
+	"trimmed": true,
+	"spriteSourceSize": {"x":36,"y":61,"w":97,"h":100},
+	"sourceSize": {"w":217,"h":232},
+	"anchor": {"x":-0.133641,"y":-0.0474138}
+},
+"expol-2.png":
+{
+	"frame": {"x":1,"y":960,"w":135,"h":144},
+	"rotated": true,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":39,"w":135,"h":144},
+	"sourceSize": {"w":217,"h":232},
+	"anchor": {"x":-0.138249,"y":-0.0560345}
+},
+"expol-3.png":
+{
+	"frame": {"x":1,"y":1,"w":185,"h":201},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":14,"y":10,"w":185,"h":201},
+	"sourceSize": {"w":217,"h":232},
+	"anchor": {"x":-0.0414747,"y":-0.012931}
+},
+"expol-4.png":
+{
+	"frame": {"x":1,"y":204,"w":194,"h":184},
+	"rotated": true,
+	"trimmed": true,
+	"spriteSourceSize": {"x":33,"y":47,"w":194,"h":184},
+	"sourceSize": {"w":229,"h":234},
+	"anchor": {"x":0.0393013,"y":0.0384615}
+},
+"expol-5.png":
+{
+	"frame": {"x":1,"y":400,"w":176,"h":184},
+	"rotated": true,
+	"trimmed": true,
+	"spriteSourceSize": {"x":29,"y":41,"w":176,"h":184},
+	"sourceSize": {"w":229,"h":234},
+	"anchor": {"x":0.0436681,"y":-0.00854701}
+},
+"expol-6.png":
+{
+	"frame": {"x":1,"y":578,"w":183,"h":190},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":19,"y":39,"w":183,"h":190},
+	"sourceSize": {"w":229,"h":234},
+	"anchor": {"x":-0.0611354,"y":0.0512821}
+},
+"expol-7.png":
+{
+	"frame": {"x":1,"y":770,"w":188,"h":178},
+	"rotated": true,
+	"trimmed": true,
+	"spriteSourceSize": {"x":17,"y":44,"w":188,"h":178},
+	"sourceSize": {"w":229,"h":234},
+	"anchor": {"x":-0.0524017,"y":0.025641}
+}},
+"animations": {
+	"expol": ["expol-1.png","expol-2.png","expol-3.png","expol-4.png","expol-5.png","expol-6.png","expol-7.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "explosion.png",
+	"format": "RGBA8888",
+	"size": {"w":187,"h":1195},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:06e4cc5e5f2317ca2770a2d2c9089f6f:d22a17df248b385ece5a20b18af6df81:900e1fb3093a9a6ecb2b2b49071c44f7$"
+}
+}

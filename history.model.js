@@ -1,9 +1,12 @@
 const mongoose = require("mongoose");
 
 const model = mongoose.model(
-    "historys",
+    "History",
     new mongoose.Schema({
         name: String,
+        data: Object,
+        createdAt: String,
+        type: String
     })
 );
 
