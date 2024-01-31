@@ -2,7 +2,6 @@ function Terrain(pathArg) {
     this.sprite = new PIXI.Sprite(PIXI.loader.resources[pathArg].texture);
 }
 
-let user = {};
 let UPDATE_KEY = "0";
 let SEND_LEADERBORD = "1";
 let SEND_ITEM = "2";
@@ -85,15 +84,10 @@ function WebSocketController(url) {
     };
 
     this.onready = function () {
-        let storage = localStorage.getItem("user-info");
+        let storage = localStorage.getItem("auth");
         if (storage) {
             let _user = JSON.parse(storage);
-            if (((Date.now() - _user.time) / 1000) / 60 < 30) { //expire time 30min
-                user = { userNick: _user.userNick.toLocaleUpperCase(), userPassW: _user.userPassW.toLocaleUpperCase() };
-                socket.send(LOGIN, { userNick: _user.userNick, userPassW: _user.userPassW });
-            } else {
-                localStorage.removeItem("user-info")
-            }
+            socket.send(LOGIN, { token: _user.token });
         }
     }
 
@@ -103,11 +97,8 @@ function WebSocketController(url) {
                 initGame();
                 $("#login-page").hide();
                 $("#chatbox").show();
-                localStorage.setItem("user-info", JSON.stringify({
-                    userNick: user.userNick.toLocaleUpperCase(),
-                    userPassW: user.userPassW.toLocaleUpperCase(),
+                localStorage.setItem("auth", JSON.stringify({
                     token: data.token,
-                    time: Date.now()
                 }));
                 toast(data.message);
             } else {
@@ -140,8 +131,8 @@ let itemInfos = {
     },
     8: {
         sprite: "hidden_medicine",
-        w: 20,
-        h: 50
+        w: 15,
+        h: 35
     },
     1: {
         sprite: "pistol",
@@ -241,7 +232,6 @@ $(document).ready(function () {
         if (userNick != "") {
             socket.send(LOGIN, { userNick, userPassW });
             loadingshow();
-            user = { userNick: userNick.toLocaleUpperCase(), userPassW: userPassW.toLocaleUpperCase() };
         } else {
             alert("please enter name")
         }
@@ -352,6 +342,38 @@ $(document).ready(function () {
         mouseposition.y = event.y;
         input.direction = getAngle(window.innerWidth / 2, window.innerHeight / 2, event.x, event.y);
     });
+
+
+    $("#wallet").click(function () {
+        $("#wallet_modal").modal("show");
+    });
+
+    $("#ranking").click(function () {
+        $("#ranking_modal").modal("show");
+    })
+
+    $("#music").click(function () {
+        if (controller.settings.music) {
+            controller.settings.music = false;
+        } else {
+            controller.settings.music = true;
+        }
+        $("#music").html(`<img src="./assets/img/music_${controller.settings.music ? 'o' : 'f'}.svg" alt="music_icon" width="50px" height="50px">`);
+    })
+
+    $("#audio").click(function () {
+        if (controller.settings.audio) {
+            controller.settings.audio = false;
+        } else {
+            controller.settings.audio = true;
+        }
+        $("#audio").html(`<img src="./assets/img/audio_${controller.settings.audio ? 'o' : 'f'}.svg" alt="audio_icon" width="50px" height="50px">`);
+    })
+
+    $("#setting").click(function () {
+        console.log(3)
+        $("#setting_modal").modal("show");
+    })
 })
 
 function distance(x1, y1, x2, y2) {

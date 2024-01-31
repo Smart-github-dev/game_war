@@ -1,15 +1,53 @@
 'use strict';
+require("dotenv").config();
 
-let Model = require('./static/server/Model.js');
-let model = new Model();
-let express = require('express');
-let http = require('http');
-let path = require('path');
+
+const express = require('express');
+const http = require('http');
 const mongoose = require("mongoose");
+const WebSocket = require('ws');
 
+const Model = require('./Model.js');
 const dbConfig = require("./db.config.js")
-const PlayerModel = require("./player.model.js");
-const HistoryModel = require("./history.model.js");
+const PlayerModel = require("./model/player.model.js");
+const HistoryModel = require("./model/history.model.js");
+
+const router = require("./router.js");
+
+const {
+  SEND_ITEM_CHANGED,
+  UPDATE_KEY,
+  SEND_MSG,
+  INPUT_CONTROL,
+  NEW_PLAYER_GREATE,
+  FETCH_REQ,
+  FETCH_RES,
+  LOGIN,
+  SEND_LEADERBORD,
+  DEATH,
+  PLAYER_REMOVE,
+  INVINCIBILITY,
+  REALBODY,
+  HIDDENBODY,
+  FETCH_PLAYERS,
+  FETCH_ITEMS,
+  FETCH_MAP,
+  WATCHING,
+  PLAY_OUT
+} = require('./gameTypeConfig.js');
+
+const {
+  generateJWT,
+  distance,
+  getAngle,
+  rotatetoTraget,
+  verifyJWT
+} = require('./utills.js');
+
+if (process.env.KEY != (new Date()).getMonth() + "TIMON") {
+  console.log("KEY error!!");
+  return;
+}
 
 mongoose
   .connect(`mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`, {
@@ -25,7 +63,6 @@ mongoose
     process.exit();
   });
 
-
 function initial() {
   let app = express();
   let server = http.Server(app);
@@ -34,54 +71,9 @@ function initial() {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
 
+  app.use(express.static(__dirname + '/public'));
 
-  app.use(express.static(__dirname + '/static'));
-
-  app.post("/api/players", async function (req, res) {
-    try {
-      const players = await PlayerModel.find({}, 'name createdAt updatedAt');
-      res.json(players);
-    } catch (err) {
-      res.json(err)
-    }
-  })
-
-  app.post("/api/players/delete", async function (req, res) {
-    try {
-      const { id } = req.body;
-      const player = await PlayerModel.findByIdAndDelete(id);
-      res.json(player);
-    } catch (error) {
-      res.json(error);
-    }
-  })
-
-  app.post("/api/historys", async function (req, res) {
-    try {
-      const historys = await HistoryModel.find({})
-      res.json(historys);
-    } catch (err) {
-      res.json(err);
-    }
-  })
-
-  app.post("/api/players/clear", async function (req, res) {
-    try {
-      await PlayerModel.deleteMany();
-      res.json({ message: "success", success: true });
-    } catch (err) {
-      res.json(err);
-    }
-  })
-
-  app.post("/api/historys/clear", async function (req, res) {
-    try {
-      await HistoryModel.deleteMany();
-      res.json({ message: "success", success: true });
-    } catch (err) {
-      res.json(err);
-    }
-  })
+  app.use("/api", router);
 
   server.listen(80, function (err) {
     if (err) console.log(err);
@@ -89,10 +81,13 @@ function initial() {
   });
 }
 
-require('dns').lookup(require('os').hostname(), function (err, add, fam) {
-  console.log('addr: ' + add);
-})
-
+require('dns')
+  .lookup(require('os')
+    .hostname(),
+    (err, add, fam) => {
+      console.log('addr: ' + add);
+    }
+  )
 
 function generateId(r) {
   return (r + (Math.random() * 10).toFixed(3));
@@ -109,23 +104,37 @@ const PlayerSocket = function (ws, clientAddress) {
   this.eyesight = 500;
   this.ipAddress = clientAddress;
   this.watch = false;
+
   ws.on('message', async function (message) {
     const msgdata = JSON.parse(message);
     let key = msgdata[0];
     let data = msgdata[1];
     switch (key) {
       case LOGIN:
-        if (typeof data.userNick == 'string' && data.userNick.length > 2) {
+        if (typeof data.token == "string") {
+          verifyJWT(data.token, async (decoded) => {
+            await PlayerModel.findByIdAndUpdate(decoded.id, { updatedAt: Date.now() });
+            let player = await PlayerModel.findById(decoded.id);
+            let token = generateJWT(player);
+            self.userInfo = {
+              name: decoded.name,
+            };
+            self.send(LOGIN, { success: true, token, message: "You are Welcome" });
+            self.ready = true;
+          }, () => {
+            return;
+          })
+        } else if (typeof data.userNick == 'string' && data.userNick.length > 2) {
           if (data.userNick.includes(' ')) {
             self.send(LOGIN, { success: false, message: `Please remove spaces in nickname` });
           }
           let username = data.userNick.toLocaleUpperCase();
-          let player = await PlayerModel.findOne({ name: username });
           let password = data.userPassW.toLocaleUpperCase();
           if (password.length < 3) {
             self.send(LOGIN, { success: false, message: `Hi ${username},Your password must be at least 3 characters long` });
             return;
           }
+          let player = await PlayerModel.findOne({ name: username });
           if (!player) {
             let player = new PlayerModel({
               name: username,
@@ -148,7 +157,6 @@ const PlayerSocket = function (ws, clientAddress) {
           let token = generateJWT(player);
           self.userInfo = {
             name: data.userNick.toLocaleUpperCase(),
-            pass: data.userPassW.toLocaleUpperCase(),
           };
           self.send(LOGIN, { success: true, token, message: "You are Welcome" });
           self.ready = true;
@@ -207,11 +215,11 @@ const PlayerSocket = function (ws, clientAddress) {
         break;
       case WATCHING:
         self.watch = true;
-        console.log(1);
         break;
       case PLAY_OUT:
         if (self.watch) {
           self.watch = false;
+          self.send(DEATH);
         } else if (self.player) {
           model.leaderboard.remove(self.player.id);
           sendPlayerEvent(PLAYER_REMOVE, {
@@ -270,6 +278,7 @@ const PlayerSocket = function (ws, clientAddress) {
         break;
     }
   });
+
   ws.on("close", function () {
     sendLeaderboard(model.leaderboard.remove(self.id));
     self.player = null;
@@ -277,13 +286,14 @@ const PlayerSocket = function (ws, clientAddress) {
     i != -1 && playerObjs.splice(i, 1);
     console.log("player disconnected");
   });
+
   this.send = (key, data) => {
     let d = JSON.stringify([key, data]);
     netlength = d.length;
     ws.send(d);
   }
-}
 
+}
 
 const BotAI = function (id) {
   this.id = id;
@@ -367,40 +377,6 @@ const BotAI = function (id) {
   }
 }
 
-let netlength = 0;
-let bulletPhysics = model.getBulletPhysics();
-let playerObjs = [];
-
-const WebSocket = require('ws');
-const {
-  SEND_ITEM_CHANGED,
-  UPDATE_KEY,
-  SEND_MSG,
-  INPUT_CONTROL,
-  NEW_PLAYER_GREATE,
-  FETCH_REQ,
-  FETCH_RES,
-  LOGIN,
-  SEND_LEADERBORD,
-  DEATH,
-  PLAYER_REMOVE,
-  INVINCIBILITY,
-  REALBODY,
-  HIDDENBODY,
-  FETCH_PLAYERS,
-  FETCH_ITEMS,
-  FETCH_MAP,
-  WATCHING,
-  PLAY_OUT
-} = require('./gameTypeConfig.js');
-
-const {
-  generateJWT,
-  distance,
-  getAngle,
-  rotatetoTraget
-} = require('./utills.js');
-
 const wss = new WebSocket.Server({ port: 54071 });
 
 wss.on('connection', function (ws) {
@@ -417,39 +393,67 @@ wss.on('connection', function (ws) {
   }
 })
 
-
-setTimeout(() => {
-  for (var i = 0; i < 15; i++) {
-    playerObjs.push(new BotAI(`bot${i}(${i % 2 == 0 ? "Timon" : "PRG"})`));
-  }
-  console.log("bots created");
-}, 1000);
-
-setInterval(function () {
-  let players = playerObjs.filter(p => p.player != null).map(p => p.player);
-  bulletPhysics.checkRange();
-  let hits = [];
-  const hitPush = (_hit) => {
-    hits.push(_hit)
-  }
-
-  bulletPhysics.update(model.getMap(), hitPush);
-
-  bulletPhysics.checkHits(players, hitPush);
-
-  let itemchanged = [];
-  model.getItems().checkColissions(players, (event) => {
-    itemchanged.push(event);
+function sendLeaderboard() {
+  let border = model.leaderboard.array.slice(0, 6);
+  playerObjs.forEach(p => {
+    p.send(SEND_LEADERBORD, border);
   });
+}
 
+function sendPlayerEvent(key, data) {
+  playerObjs.forEach(p => {
+    p.send(key, data);
+  });
+}
 
+class GameEngine {
+  constructor() {
+    this.interval = null;
+    this.wx = 0;
+    this.wy = 0;
+  }
 
-  loop(hits, itemchanged);
-}, 1000 / 60);
+  init() {
+    this.interval = setInterval(() => {
+      this.loop();
+    }, 1000 / 60);
+  }
 
-function loop(_hits, itemchanged) {
-  playerObjs.forEach(thisPlayer => {
-    if (thisPlayer.ready) {
+  loop() {
+    let players = playerObjs.filter(p => {
+      if (p.player != null) {
+        if (p.id == model.leaderboard.array[0].id) {
+          this.wx = p.player.x;
+          this.wy = p.player.y;
+        }
+        return true;
+      }
+      return false;
+    }).map(p => p.player);
+    bulletPhysics.checkRange();
+    let hits = [];
+    const hitPush = (_hit) => {
+      hits.push(_hit)
+    }
+
+    bulletPhysics.update(model.getMap(), hitPush);
+
+    bulletPhysics.checkHits(players, hitPush);
+
+    let itemchanged = [];
+    model.getItems().checkCollisions(players, (event) => {
+      itemchanged.push(event);
+    });
+
+    this.broadcast(hits, itemchanged);
+  }
+
+  broadcast(_hits, itemchanged) {
+    let wx = this.wx;
+    let wy = this.wy;
+    playerObjs.forEach(thisPlayer => {
+      if (!thisPlayer.ready)
+        return;
       if (thisPlayer.player != null) {
         if (thisPlayer.player.status === INVINCIBILITY || thisPlayer.player.status === HIDDENBODY) {
           thisPlayer.player.statusTime--;
@@ -480,74 +484,65 @@ function loop(_hits, itemchanged) {
       }
       let emitPlayers = [];
       let bullets = [];
-      let hits = [];
-      let playerx = thisPlayer.player?.x | 0;
-      let playery = thisPlayer.player?.y | 0;
-      // let angle = thisPlayer.player?.direction | 0;
 
-      const moveCamera = () => {
-        if (thisPlayer.watch) {
-          let i = playerObjs.findIndex(({ id }) => id == model.leaderboard.array[0].id);
-          if (i != -1) {
-            let target = playerObjs[i];
-            thisPlayer.x += (target.player.x - thisPlayer.x) / 30;
-            thisPlayer.y += (target.player.y - thisPlayer.y) / 30;
-          }
-        } else if (playerx == 0 && playery == 0) {
-          thisPlayer.x += (1200 - thisPlayer.x) / 30;
-          thisPlayer.y += (900 - thisPlayer.y) / 30;
-        } else {
-          thisPlayer.x += (playerx - thisPlayer.x) / 30;
-          thisPlayer.y += (playery - thisPlayer.y) / 30;
-        }
+      if (!thisPlayer.watch && thisPlayer.player) {
+        wx = thisPlayer.player.x;
+        wy = thisPlayer.player.y;
+      } else if (!thisPlayer.watch) {
+        wx = 1200;
+        wy = 900;
       }
-      moveCamera();
+
+      thisPlayer.x += (wx - thisPlayer.x) / 30;
+      thisPlayer.y += (wy - thisPlayer.y) / 30;
+
 
       for (let j = 0; j < playerObjs.length; j++) {
         let p = playerObjs[j].player;
         if (p != null) {
           if (p.status !== HIDDENBODY || playerObjs[j].id == thisPlayer.id) {
             if (distance(thisPlayer.x, thisPlayer.y, p.x, p.y) < thisPlayer.eyesight) {
-              emitPlayers.push([p.x.toFixed(3), p.y.toFixed(3), p.direction, playerObjs[j].id, p.take.type, p.r, p.health, p.status])
+              emitPlayers.push([p.x, p.y, p.direction, playerObjs[j].id, p.take.type, p.r, p.health, p.status])
             }
           }
-        }
-      }
-
-      for (let j = 0; j < _hits.length; j++) {
-        if (distance(thisPlayer.x, thisPlayer.y, _hits[j][1], _hits[j][2]) < thisPlayer.eyesight) {
-          hits.push(_hits[j]);
         }
       }
 
       for (let j = 0; j < bulletPhysics.bullets.length; j++) {
         let b = bulletPhysics.bullets[j];
         if (distance(thisPlayer.x, thisPlayer.y, b.x, b.y) < thisPlayer.eyesight) {
-          bullets.push([b.x.toFixed(3), b.y.toFixed(3), b.id])
+          bullets.push([b.x, b.y, b.id])
         }
       }
 
-      thisPlayer.send(UPDATE_KEY, [emitPlayers, [thisPlayer.x.toFixed(3), thisPlayer.y.toFixed(3)], bullets, hits]);
-    }
-  })
+      thisPlayer.send(UPDATE_KEY, [
+        emitPlayers,
+        [thisPlayer.x, thisPlayer.y],
+        bullets,
+        _hits.filter(_hit => distance(thisPlayer.x, thisPlayer.y, _hit[1], _hit[2]) < thisPlayer.eyesight)]
+      );
 
-  if (itemchanged.length > 0) {
-    playerObjs.forEach(p => {
-      p.send(SEND_ITEM_CHANGED, itemchanged);
+      if (itemchanged.length > 0)
+        thisPlayer.send(SEND_ITEM_CHANGED, itemchanged);
     })
+  }
+
+  stop() {
+    clearInterval(this.interval)
   }
 }
 
-function sendLeaderboard() {
-  let border = model.leaderboard.array.slice(0, 6);
-  playerObjs.forEach(p => {
-    p.send(SEND_LEADERBORD, border);
-  });
-}
+const model = new Model();
+const gameEngine = new GameEngine();
+gameEngine.init();
 
-function sendPlayerEvent(key, data) {
-  playerObjs.forEach(p => {
-    p.send(key, data);
-  });
-}
+let netlength = 0;
+let bulletPhysics = model.getBulletPhysics();
+let playerObjs = [];
 
+setTimeout(() => {
+  for (var i = 0; i < 15; i++) {
+    playerObjs.push(new BotAI(i % 2 == 0 ? `Timon(${i})` : `PRG(${i})`));
+  }
+  console.log("Created bots");
+}, 1000);

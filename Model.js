@@ -1,7 +1,17 @@
 'use strict';
 
-const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM } = require("../../gameTypeConfig");
-const { distance } = require("../../utills");
+const {
+  HITSHIELD,
+  HITBRICK,
+  HITBODY,
+  INVINCIBILITY,
+  REALBODY,
+  ITEMS,
+  HIDDENBODY,
+  ADDITEM,
+  DELLITEM
+} = require("./gameTypeConfig");
+const { distance } = require("./utills");
 
 
 const {
@@ -24,7 +34,6 @@ class Terrain {
     this.isPassable = isPassableArg;
   }
 }
-
 
 let sand = new Terrain(3, 'sand', 0, 1);
 let edge = new Terrain(3, 'edge', 0, 0);
@@ -254,14 +263,20 @@ class BulletPhysics {
   }
 
   update(map, hitPush) {
-    for (let i = 0; i < this.bullets.length; i++) {
-      this.bullets[i].x += parseFloat(this.bullets[i].speed * Math.cos(this.bullets[i].direction));
-      this.bullets[i].y += parseFloat(this.bullets[i].speed * Math.sin(this.bullets[i].direction));
-      this.bullets[i].distanceTraveled += this.bullets[i].speed;
-      if (!map.square[Math.floor((this.bullets[i].y) / 50)][Math.floor((this.bullets[i].x) / 50)]?.isPassable) {
-        hitPush([HITBRICK, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const bullet = this.bullets[i];
+      const nextX = bullet.x + bullet.speed * Math.cos(bullet.direction);
+      const nextY = bullet.y + bullet.speed * Math.sin(bullet.direction);
+      bullet.distanceTraveled += bullet.speed;
+
+      const squareX = Math.floor(nextX / 50);
+      const squareY = Math.floor(nextY / 50);
+      if (map.square[squareY] && map.square[squareY][squareX] && !map.square[squareY][squareX].isPassable) {
+        hitPush([HITBRICK, parseInt(nextX), parseInt(nextY)]);
         this.bullets.splice(i, 1);
-        i--;
+      } else {
+        bullet.x = nextX;
+        bullet.y = nextY;
       }
     }
   }
@@ -278,28 +293,33 @@ class BulletPhysics {
   }
 
   checkHits(players, hitPush) {
-    for (let j = 0; j < players.length; j++) {
-      let player = players[j];
-      for (let i = 0; i < this.bullets.length; i++) {
-        if (player.take instanceof Tool) {
-          if (player.take.run(this.bullets[i])) {
-            hitPush([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
-            this.bullets.splice(i, 1);
-            return;
-          }
-        }
-        if (this.bullets[i].x >= player.x - player.r / 2 && this.bullets[i].x <= player.x + player.r / 2 && this.bullets[i].y >= player.y - player.r / 2 && this.bullets[i].y <= player.y + player.r / 2) {
-          if (this.bullets[i].owner != player.id) {
-            if (player.status !== INVINCIBILITY) {
-              player.health -= this.bullets[i].damage;
-              if (player.health <= 0)
-                player.killedBy = this.bullets[i].owner;
-              hitPush([HITBODY, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y), this.bullets[i].damage]);
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const bullet = this.bullets[i];
+      const bulletX = parseInt(bullet.x);
+      const bulletY = parseInt(bullet.y);
+      for (let j = 0; j < players.length; j++) {
+        const player = players[j];
+        if (bullet.owner !== player.id) {
+          const minX = player.x - player.r / 2;
+          const maxX = player.x + player.r / 2;
+          const minY = player.y - player.r / 2;
+          const maxY = player.y + player.r / 2;
+          if (bulletX >= minX && bulletX <= maxX && bulletY >= minY && bulletY <= maxY) {
+            if (player.take instanceof Tool && player.take.run(bullet)) {
+              hitPush([HITSHIELD, bulletX, bulletY]);
             } else {
-              hitPush([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
+              if (player.status !== INVINCIBILITY) {
+                player.health -= bullet.damage;
+                if (player.health <= 0) {
+                  player.killedBy = bullet.owner;
+                }
+                hitPush([HITBODY, bulletX, bulletY, bullet.damage]);
+              } else {
+                hitPush([HITSHIELD, bulletX, bulletY]);
+              }
             }
             this.bullets.splice(i, 1);
-            i--;
+            break;
           }
         }
       }
@@ -324,31 +344,33 @@ class Items {
     this.generateItems(100, mapSquares);
   };
 
-  checkColissions(players, changed) {
+  checkCollisions(players, changed) {
     for (let j = 0; j < players.length; j++) {
       let player = players[j];
-      for (let i = 0; i < this.array.length; i++) {
-        if (this.array[i].x >= player.x - this.array[i].spriteWidth && this.array[i].x <= player.x + this.array[i].spriteWidth && this.array[i].y >= player.y - this.array[i].spriteHeight && this.array[i].y <= player.y + this.array[i].spriteHeight) {
-          if (this.array[i] instanceof Weapon || this.array[i] instanceof Shield) {
-            player.pickUpItem(this.array[i], this.array, changed);
+      for (let i = this.array.length - 1; i >= 0; i--) {
+        let bullet = this.array[i];
+        if (bullet.x >= player.x - bullet.spriteWidth &&
+          bullet.x <= player.x + bullet.spriteWidth &&
+          bullet.y >= player.y - bullet.spriteHeight &&
+          bullet.y <= player.y + bullet.spriteHeight) {
+          if (bullet instanceof Weapon || bullet instanceof Shield) {
+            player.pickUpItem(bullet, this.array, changed);
             changed({
               ...{
                 type: DELLITEM,
-                id: this.array[i].id
+                id: bullet.id
               }
             });
             this.array.splice(i, 1);
-            i--;
           }
-          else if (this.array[i].apply(player)) {
+          else if (bullet.apply(player)) {
             changed({
               ...{
                 type: DELLITEM,
-                id: this.array[i].id
+                id: bullet.id
               }
             });
             this.array.splice(i, 1);
-            i--;
           }
         }
       }
@@ -415,7 +437,6 @@ class HealthPack extends Item {
     super();
     this.healthGain = 500;
     this.type = HEALTH;
-    this.spriteName = "healthPack.png";
     this.spriteWidth = 50;
     this.spriteHeight = 50;
   }
@@ -435,7 +456,6 @@ class HiddenMedicine extends Item {
   constructor() {
     super();
     this.type = HMEDCINE;
-    this.spriteName = "hidden_medicine.png";
     this.spriteWidth = 20;
     this.spriteHeight = 50;
     this.hiddentime = 200;
@@ -465,7 +485,6 @@ class Shield extends Tool {
   constructor(type, rate) {
     super();
     this.type = SHIELD;
-    this.spriteName = "shield";
     this.spriteWidth = 20;
     this.spriteHeight = 60;
     this.triggered = 0;
@@ -499,7 +518,6 @@ class Weapon extends Item {
     super();
     this.damage = dmg;
     this.accuracy = acc;
-    this.spriteName = "null";
     this.triggered = 0;
     this.lastShot = new Date();
     this.fireRate = fRate; // in miliseconds
@@ -555,7 +573,6 @@ class Pistol extends SemiAutomaticWeapon {
   constructor() {
     super(300, 95, 400);
     this.type = WEAPON1;
-    this.spriteName = "pistol";
     this.spriteWidth = 30;
     this.spriteHeight = 18;
   }
@@ -565,7 +582,6 @@ class Revolver extends SemiAutomaticWeapon {
   constructor() {
     super(600, 100, 500);
     this.type = WEAPON6;
-    this.spriteName = "revolver";
     this.spriteWidth = 40;
     this.spriteHeight = 20;
   }
@@ -575,7 +591,6 @@ class DoublePistol extends SemiAutomaticWeapon {
   constructor() {
     super(300, 95, 400);
     this.type = WEAPON2;
-    this.spriteName = "doublePistols";
     this.spriteWidth = 30;
     this.spriteHeight = 40;
   }
@@ -604,7 +619,6 @@ class Rifle extends AutomaticWeapon {
   constructor() {
     super(400, 98, 150);
     this.type = WEAPON3;
-    this.spriteName = "rifle";
     this.spriteWidth = 73;
     this.spriteHeight = 18;
   }
@@ -615,7 +629,6 @@ class Smg extends AutomaticWeapon {
   constructor() {
     super(100, 80, 50);
     this.type = WEAPON4;
-    this.spriteName = "smg";
     this.spriteWidth = 50;
     this.spriteHeight = 20;
   }
@@ -625,7 +638,6 @@ class Gatling extends AutomaticWeapon {
   constructor() {
     super(300, 70, 15);
     this.type = WEAPON5;
-    this.spriteName = "gatling";
     this.spriteWidth = 90;
     this.spriteHeight = 33;
   }
@@ -730,7 +742,7 @@ function statusApply(player) {
   if (player.status == INVINCIBILITY) {
     return true;
   }
-  if (player.status == HITBODY) {
+  if (player.status == HIDDENBODY) {
     player.status = REALBODY;
   }
   return false;

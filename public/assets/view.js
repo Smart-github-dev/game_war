@@ -34,30 +34,31 @@ var playerAnimationframes = {};
 function initGame() {
   const loader = PIXI.loader;
   loader
-    .add("grass", "client/sprites/grass.png")
-    .add("sand", "client/sprites/sand.png")
-    .add("edge", "client/sprites/edge.png")
-    .add("water", "client/sprites/water.png")
-    .add("lava", "client/sprites/lava.png")
-    .add("brick", "client/sprites/brick.png")
-    .add("floor", "client/sprites/floor.png")
-    .add("pistol", "client/sprites/pistol.png")
-    .add("revolver", "client/sprites/revolver.png")
-    .add("doublePistols", "client/sprites/doublePistols.png")
-    .add("rifle", "client/sprites/rifle.png")
-    .add("smg", "client/sprites/smg.png")
-    .add("gatling", "client/sprites/gatling.png")
-    .add("bullet", "client/sprites/bullet.png")
-    .add("healthPack", "client/sprites/healthPack.png")
-    .add("shield", 'client/sprites/shield.png')
-    .add("shieldhit", 'client/sprites/shieldhit.png')
-    .add("brickhit", 'client/sprites/brickhit.png')
-    .add("bodyhit", 'client/sprites/bodyhit.png')
-    .add("player", 'client/sprites/player.json')
-    .add("player2", 'client/sprites/player2.json')
-    .add("explosion1", 'client/sprites/explosion.json')
-    .add("hidden_medicine", 'client/sprites/hidden_medicine.png')
-    .add('scope', 'client/sprites/scope.svg')
+    .add("grass", "assets/sprites/grass.png")
+    .add("sand", "assets/sprites/sand.png")
+    .add("edge", "assets/sprites/edge.png")
+    .add("water", "assets/sprites/water.png")
+    .add("lava", "assets/sprites/lava.png")
+    .add("brick", "assets/sprites/brick.png")
+    .add("floor", "assets/sprites/floor.png")
+    .add("pistol", "assets/sprites/pistol.png")
+    .add("revolver", "assets/sprites/revolver.png")
+    .add("doublePistols", "assets/sprites/doublePistols.png")
+    .add("rifle", "assets/sprites/rifle.png")
+    .add("smg", "assets/sprites/smg.png")
+    .add("gatling", "assets/sprites/gatling.png")
+    .add("bullet", "assets/sprites/bullet.png")
+    .add("healthPack", "assets/sprites/healthPack.png")
+    .add("shield", 'assets/sprites/shield.png')
+    .add("shieldhit", 'assets/sprites/shieldhit.png')
+    .add("brickhit", 'assets/sprites/brickhit.png')
+    .add("bodyhit", 'assets/sprites/bodyhit.png')
+    .add("player", 'assets/sprites/player.json')
+    .add("player2", 'assets/sprites/player2.json')
+    .add("explosion1", 'assets/sprites/explosion.json')
+    .add("hidden_medicine", 'assets/sprites/hidden_medicine.png')
+    .add('scope', 'assets/sprites/scope.svg')
+    .add('outb', 'assets/sprites/out.svg')
     .load(setup);
 
   let progressBar = new PIXI.Graphics();
@@ -109,6 +110,13 @@ function setup() {
     playerAnimationframes['player2'].push(textures[i]);
   }
 
+  const btn = new PIXI.Sprite(PIXI.loader.resources['outb'].texture);
+
+  btn.width = 30;
+  btn.height = 30;
+  btn.anchor.set(0.5);
+  btnOut.addChild(btn);
+
   controller.fetchData(function () {
     loadinghidden();
     $("#main-page").show();
@@ -129,16 +137,19 @@ function setup() {
 function gameStart() {
   controller.bsc = 0;
   controller.newPlayer();
-  $("#main-page").hide();
+  $("#main-page").hide(200);
   controller.status = "play";
   document.body.style.cursor = 'none';
+  btnOut.visible = true;
 }
 
 function gameWatch() {
   controller.bsc = 0;
   socket.send(WATCHING);
-  $("#main-page").hide();
+  $("#main-page").hide(200);
+  controller.status = "watch";
   document.body.style.cursor = 'none';
+  btnOut.visible = true;
 }
 
 function outPlay() {
@@ -148,7 +159,11 @@ function outPlay() {
 const mapContainer = new PIXI.Container();
 const itemContainer = new PIXI.Container();
 const bulletContainer = new PIXI.Container();
-const playerContainer = new PIXI.Container();
+const playerFContainer = new PIXI.Container();
+const playerBContainer = new PIXI.Container();
+const playerWContainer = new PIXI.Container();
+const playerHContainer = new PIXI.Container();
+
 const effectContainer = new PIXI.Container();
 const trailContainer = new PIXI.Container();
 
@@ -162,10 +177,29 @@ mainContainer.addChild(itemContainer);
 mainContainer.addChild(bulletContainer);
 mainContainer.addChild(trailContainer);
 
-mainContainer.addChild(playerContainer);
+mainContainer.addChild(playerFContainer);
+mainContainer.addChild(playerBContainer);
+mainContainer.addChild(playerWContainer);
+mainContainer.addChild(playerHContainer);
+
 mainContainer.addChild(effectContainer);
 app.stage.addChild(containerMask);
 app.stage.addChild(mainContainer);
 app.stage.addChild(ctlContainer);
 
+
+// Create a button
+const btnOut = new PIXI.Container();
+btnOut.interactive = true;
+btnOut.buttonMode = true;
+btnOut.position.set(50, 50);
+btnOut.visible = false;
+// Add the button to the stage
+app.stage.addChild(btnOut);
+
+// Add event listeners
+btnOut.on('pointerdown', () => {
+  btnOut.visible = false;
+  outPlay();
+});
 

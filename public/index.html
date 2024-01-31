@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Multicopverse</title>
+  <link rel="stylesheet" href="/assets/game.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+  <!-- <script disable-devtool-auto src='https://cdn.jsdelivr.net/npm/disable-devtool'></script> -->
+</head>
+<script src="/assets/pixi/pixi.min.js"></script>
+<script src="/assets/controller.js"></script>
+
+<body style="background-color: #2e2e2e;">
+  <div id="login-page">
+    <div class="" id="login-panel">
+      <div class="p-4">
+        <div class="form-group">
+          <label for="userName" class="text-white">userNick</label>
+          <input type="text" class="form-control" placeholder="Enter Nick" id="userName">
+        </div>
+        <div class="form-group">
+          <label for="userPassW" class="text-white">Password:</label>
+          <input type="password" class="form-control" placeholder="Enter password" id="userPassW">
+        </div>
+        <div class="form-group form-check">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox"> Remember me
+          </label>
+        </div>
+        <button type="button" class="btn btn-primary" id="loginBtn">SIGN-IN</button>
+      </div>
+    </div>
+  </div>
+  <div class="loading" id="loding">
+    <div class="spinner-border text-primary loadinghandle"></div>
+  </div>
+  <div id="main-page">
+    <div class="main-menu d-flex flex-column" id="menu">
+      <div class="d-flex border-white border-bottom">
+        <button class="btn" id="wallet">
+          <img src="./assets/img/wallet.svg" alt="setting_icon" width="50px" height="50px">
+        </button>
+        <button class="btn" id="ranking">
+          <img src="./assets/img/ranking.svg" alt="ranking_icon" width="50px" height="50px">
+        </button>
+        <button class="btn" id="music">
+          <img src="./assets/img/music_o.svg" alt="music_icon" width="50px" height="50px">
+        </button>
+        <button class="btn" id="audio">
+          <img src="./assets/img/audio_o.svg" alt="audio_icon" width="50px" height="50px">
+        </button>
+        <button class="btn" id="setting">
+          <img src="./assets/img/setting.svg" alt="setting_icon" width="50px" height="50px">
+        </button>
+      </div>
+      <div class="text-primary text-align-center pb-0 h4">Are you ready?</div>
+      <div class="text-align-center p-2 pt-0 text-danger">click the start button</div>
+      <div class="btn-group ">
+        <button type="button" class="btn btn-info" onclick="gameStart()">Let's start <img src="./assets/img/play.svg"
+            width="30px" alt="play"></button>
+        <button type="button" class="btn btn-warning" onclick="gameWatch()">Watching.. <img
+            src="./assets/img/watching.svg" alt="watch" width="30px"></button>
+      </div>
+      <div class="d-flex">
+        <a href="https://discord.com/channels/1199041445751947456" class="btn btn-sm">
+          <img src="./assets/img/discord-mark-blue.svg" width="50px" height="50px" alt="descord">
+        </a>
+        <a href="https://web.telegram.org/k/#-2141475534" class="btn btn-sm">
+          <img src="./assets/img/telagram-mark-blue.svg" width="50px" height="50px" alt="telegram">
+        </a>
+      </div>
+    </div>
+  </div>
+  <div id="chatbox">
+    <div class="msbox" id="chat-box"></div>
+    <div class="inputbox">
+      <input type="text" class="inputchat" placeholder=">here some text" />
+    </div>
+  </div>
+
+
+  <div class="modal fade" id="wallet_modal">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <img src="./assets/img/wallet.svg" alt="setting_icon" width="50px" height="50px">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal fade" id="ranking_modal">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <img src="./assets/img/ranking.svg" alt="ranking_icon" width="50px" height="50px">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal fade" id="setting_modal">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <img src="./assets/img/setting.svg" alt="setting_icon" width="50px" height="50px">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="">
+            <div class="row">
+              <div class="dropdown mx-auto">
+                <button type="button" class="btn btn-primary dropdown-toggle" id="up_key" data-toggle="dropdown">
+                  W
+                </button>
+                <div class="dropdown-menu" id="upkey">
+                </div>
+              </div>
+            </div>
+            <div class="d-flex justify-content-center">
+              <div class="dropdown">
+                <button type="button" class="btn btn-primary dropdown-toggle" id="left_key" data-toggle="dropdown">
+                  A
+                </button>
+                <div class="dropdown-menu" id="leftkey">
+                </div>
+              </div>
+              <div class="dropdown">
+                <button type="button" class="btn btn-primary dropdown-toggle" id="down_key" data-toggle="dropdown">
+                  S
+                </button>
+                <div class="dropdown-menu" id="downkey">
+                </div>
+              </div>
+              <div class="dropdown">
+                <button type="button" class="btn btn-primary dropdown-toggle" id="right_key" data-toggle="dropdown">
+                  D
+                </button>
+                <div class="dropdown-menu" id="rightkey">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/view.js"></script>
+  <script src="/assets/index.js"></script>
+  <script>
+    "use strict";
+    var controller = new Controller();
+    let center = {
+      offx: controller.width / 2,
+      offy: controller.height / 2
+    }
+    resize();
+    let keyInfos = { "0": 48, "1": 49, "2": 50, "3": 51, "4": 52, "5": 53, "6": 54, "7": 55, "8": 56, "9": 57, "S": 83, "A": 65, "D": 68, "F": 70, "W": 87, "Q": 81, "E": 69, "R": 82, "K": 75, "L": 76, "H": 72, "I": 73, "O": 79, "P": 80, "U": 85, "Y": 89, "T": 84, "G": 71, "J": 74, "Z": 90, "X": 88, "C": 67, "M": 77, "N": 78, "B": 66, "V": 86, "LEFT": 37, "DOWN": 40, "RIGHT": 39, "UP": 38 };
+
+    let keydatas = [];
+    for (let k in keyInfos) {
+      keydatas.push({
+        key: k,
+        value: keyInfos[k]
+      })
+    }
+
+    $("#upkey").html(`${keydatas.map(info => {
+      return `<a class="dropdown-item" onclick="setKey('${info.value}','up')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#leftkey").html(`${keydatas.map(info => {
+      return `<a class="dropdown-item" onclick="setKey('${info.value}','left')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#rightkey").html(`${keydatas.map(info => {
+      return `<a class="dropdown-item" onclick="setKey('${info.value}','right')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#downkey").html(`${keydatas.map(info => {
+      return `<a class="dropdown-item" onclick="setKey('${info.value}','down')" href="#">${info.key}</a>`
+    })}`);
+
+
+    function showKey(value, type) {
+      let i = keydatas.findIndex(k => k.value == value);
+      if (i != -1) {
+        $("#" + type + "_key").html(keydatas[i].key)
+      }
+    }
+
+    function setKey(value, key) {
+      controller.settings.key[key] = value;
+      showKey(value, key);
+      localStorage.setItem("game_setting", JSON.stringify(controller.settings));
+    }
+
+    if (localStorage.getItem("game_setting")) {
+      let settings = JSON.parse(localStorage.getItem("game_setting"));
+      controller.settings = settings;
+      showKey(settings.key['up'], 'up');
+      showKey(settings.key['left'], 'left');
+      showKey(settings.key['right'], 'right');
+      showKey(settings.key['down'], 'down');
+    }
+
+  </script>
+</body>
+
+</html>

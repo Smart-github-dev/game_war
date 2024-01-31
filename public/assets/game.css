@@ -21,7 +21,7 @@
    top: 20%;
    width: 250px;
    width: 250px;
-   background-image: url(../client/img/noice.webp);
+   background-image: url(../assets/img/noice.webp);
    background-repeat: repeat;
  }
 
@@ -31,13 +31,13 @@
    position: absolute;
    bottom: 0;
    left: 10px;
-   border: 1px solid rgb(61, 61, 61);
+   /* border: 1px solid rgb(61, 61, 61); */
    border-radius: 5px;
    display: flex;
    flex-direction: column;
    align-items: center;
    overflow: hidden;
-   z-index: 100;
+   z-index: 2;
  }
 
  .msbox {
@@ -80,7 +80,7 @@
    z-index: 100000;
  }
 
- 
+
  .loadinghandle {
    position: absolute;
    left: 50%;
@@ -94,7 +94,7 @@
    top: 0;
    left: 0;
    background-color: rgba(0, 0, 0, 0.664);
-   z-index: 99;
+   z-index: 1;
  }
 
 
@@ -104,10 +104,10 @@
    top: 50%;
    transform: translate(-50%, -50%);
    width: 60%;
-   height: 40%;
+   height: 50%;
    border: 2px solid rgba(145, 143, 143, 0.685);
    background-color: #262626e0;
-   background-image: url(../client/img/noice.webp);
+   background-image: url(../assets/img/noice.webp);
    background-repeat: repeat;
    border-radius: 5px;
    display: flex;
@@ -117,44 +117,51 @@
  }
 
  ::-webkit-scrollbar {
-   width: 10px;
-   height: 10px;
+   width: 5px;
+   height: 5px;
  }
 
  ::-webkit-scrollbar-track {
-   background-color: #f1f1f1;
-   border-radius: 5px;
+   background-color: #f1f1f123;
+   /* border-radius: 3px; */
  }
 
  ::-webkit-scrollbar-thumb {
    background-color: #888;
-   border-radius: 5px;
+   /* border-radius: 3px; */
  }
 
  /* For Internet Explorer */
  ::-ms-scrollbar {
-   width: 10px;
-   height: 10px;
+   width: 5px;
+   height: 5px;
  }
 
  ::-ms-scrollbar-track {
-   background-color: #f1f1f1;
-   border-radius: 5px;
+   background-color: #f1f1f12c;
+   /* border-radius: 3px; */
  }
 
  ::-ms-scrollbar-thumb {
    background-color: #888;
-   border-radius: 5px;
+   /* border-radius: 3px; */
  }
 
 
  #login-page {
    position: absolute;
-   z-index: 10000;
+   z-index: 3;
    background-image: url(./img/bg.png);
    width: 100vw;
    height: 100vh;
    background-size: cover;
    background-color: #0d181f50;
    background-blend-mode: color-burn;
+ }
+
+ .dropdown-menu {
+   height: 300px !important;
+   overflow-y: scroll;
+   width:100px !important;
+   min-width: auto !important;
  }

@@ -1,19 +1,24 @@
 const jwt = require('jsonwebtoken');
-module.exports.generateJWT = function (user) {
+const secretKey = 'multicopverse';
 
-    // Create a JWT payload
+module.exports.generateJWT = function (user) {
     const payload = {
         id: user._id,
-        username: user.username
+        name: user.username
     };
-
-    // Sign the JWT using a secret key
-    const token = jwt.sign(payload, 'my-game', { expiresIn: '1h' });
-
-    // Return the JWT
+    const token = jwt.sign(payload, getGenerateSecreteKey(), { expiresIn: '1h' });
     return token;
 };
 
+module.exports.verifyJWT = function (token, success, failed) {
+    jwt.verify(token, getGenerateSecreteKey(), { ignoreExpiration: false }, (err, decoded) => {
+        if (err) {
+            failed(err)
+        } else {
+            success(decoded)
+        }
+    });
+}
 
 module.exports.distance = function (x1, y1, x2, y2) {
     const deltaX = x2 - x1;
@@ -21,7 +26,6 @@ module.exports.distance = function (x1, y1, x2, y2) {
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     return distance;
 }
-
 
 module.exports.rotatetoTraget = function (currentAngle, targetAngle, angleSpeed) {
     let angleDifference = targetAngle - currentAngle;
@@ -32,7 +36,11 @@ module.exports.rotatetoTraget = function (currentAngle, targetAngle, angleSpeed)
     return nextAngle;
 }
 
-
 module.exports.getAngle = function (x1, y1, x2, y2) {
     return Math.atan2(y2 - y1, x2 - x1);
+}
+
+module.exports.getGenerateSecreteKey = function () {
+    let date = new Date();
+    return date.getMonth() + secretKey + date.getMonth();
 }

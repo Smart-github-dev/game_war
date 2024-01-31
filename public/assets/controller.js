@@ -1,7 +1,7 @@
 'use strict';
 
 
-let playerinfokey = {
+const playerinfokey = {
   x: 0,
   y: 1,
   direction: 2,
@@ -30,8 +30,8 @@ class Controller {
     this.effects = [];
     this.status = "ready";
     this.settings = {
-      audio: false,
-      music: false,
+      audio: true,
+      music: true,
       key: {
         up: 65,
         down: 68,
@@ -177,6 +177,8 @@ class Controller {
         }
       }
 
+      self.bullets = updatedBullets;
+
       bulletContainer.x = - offx;
       bulletContainer.y = - offy;
       trailContainer.x = -offx;
@@ -185,7 +187,6 @@ class Controller {
       itemContainer.x = -offx;
       itemContainer.y = -offy;
 
-      self.bullets = updatedBullets;
 
       for (let k = 0; k < bulletDatas.length; k++) {
         self.bullets.push(new Bullet(bulletDatas[k][2], bulletDatas[k][0], bulletDatas[k][1]))
@@ -222,7 +223,7 @@ class Controller {
     let self = this;
     socket.listens[DEATH] = function () {
       self.status = "ready";
-      $("#main-page").show();
+      $("#main-page").show(200);
       document.body.style.cursor = 'auto';
     }
   }
@@ -277,8 +278,8 @@ class Controller {
     this.mapDraw();
     this.processing();
     this.updateTrail();
-    if (this.status == "play") {
-      this.touchCtl.update();
+    if (this.status == "play" || this.status == "watch") {
+      this.touchCtl.update(this.status == "play");
     }
   }
 
@@ -369,7 +370,7 @@ class Controller {
 
   updateTrail() {
     trailContainer.children.forEach((trailParticle) => {
-      trailParticle.alpha -= 0.08;
+      trailParticle.alpha -= 0.15;
       trailParticle.scale.x *= 0.95;
       trailParticle.scale.y *= 0.95;
       if (trailParticle.alpha <= 0) {
@@ -409,8 +410,8 @@ class Player {
   setup(type) {
     this.player = new PIXI.extras.AnimatedSprite(playerAnimationframes[type]);
     this.player.animationSpeed = 0.2;
-    this.border = new PIXI.Graphics();
     this.player.anchor.set(0.5, 0.5);
+    this.border = new PIXI.Graphics();
 
     this.take = new PIXI.Sprite(PIXI.loader.resources['pistol'].texture);
     this.take.anchor.set(0.5, 0.5);
@@ -421,24 +422,28 @@ class Player {
     this.name.anchor.set(0.5, 0.5);
     this.redBar = new PIXI.Graphics();
     this.greenBar = new PIXI.Graphics();
-    this.stage = new PIXI.Container();
-    this.stage.addChild(this.border);
-    this.stage.addChild(this.player);
-    this.stage.addChild(this.take);
-    this.stage.addChild(this.name);
 
-    this.stage.addChild(this.redBar);
-    this.stage.addChild(this.greenBar);
+    this.header = new PIXI.Container();
+
+    playerFContainer.addChild(this.border);
+    playerBContainer.addChild(this.player);
+    playerWContainer.addChild(this.take);
+    this.header.addChild(this.name);
+    this.header.addChild(this.redBar);
+    this.header.addChild(this.greenBar);
+    playerHContainer.addChild(this.header);
     this.hidePlayer();
-    playerContainer.addChild(this.stage);
   }
 
   showPlayer() {
-    this.stage.visible = true;
+    this.border.visible = true;
+    this.player.visible = true;
+    this.take.visible = true;
+    this.header.visible = true;
   }
 
   update(info) {
-    if (!this.stage.visible) {
+    if (!this.player.visible) {
       this.showPlayer();
     }
 
@@ -456,6 +461,7 @@ class Player {
     let _distance = itemInfos[info[playerinfokey.itemType]].distance;
     this.take.position.set(x + _distance * Math.cos(info[playerinfokey.direction]), y + _distance * Math.sin(info[playerinfokey.direction]));
     this.border.clear();
+
     if (this.status == INVINCIBILITY) {
       this.border.beginFill(0xd9d9d9, .6);
       this.border.drawCircle(x, y, info[playerinfokey.size]);
@@ -463,6 +469,7 @@ class Player {
       this.border.beginFill(0x0099ff, .1);
       this.border.drawCircle(x, y, info[playerinfokey.size] - 5);
     }
+
     this.border.endFill();
 
     this.name.position.set(x, y - 55);
@@ -478,9 +485,13 @@ class Player {
     this.greenBar.endFill();
 
     if (this.status == HIDDENBODY) {
-      this.stage.alpha = 0.3;
+      this.player.alpha = 0.3;
+      this.take.alpha = 0.3;
+      this.header.alpha = 0.3;
     } else {
-      this.stage.alpha = 1;
+      this.player.alpha = 1;
+      this.take.alpha = 1;
+      this.header.alpha = 1;
     }
 
     if (distance(this.x, this.y, info[playerinfokey.x], info[playerinfokey.y]) > 0.1) {
@@ -502,13 +513,19 @@ class Player {
   }
 
   hidePlayer() {
-    if (this.stage.visible) {
-      this.stage.visible = false;
+    if (this.player.visible) {
+      this.border.visible = false;
+      this.player.visible = false;
+      this.take.visible = false;
+      this.header.visible = false;
     }
   }
 
   removePlayer() {
-    playerContainer.removeChild(this.stage);
+    playerFContainer.removeChild(this.border);
+    playerBContainer.removeChild(this.player);
+    playerWContainer.removeChild(this.take);
+    playerHContainer.removeChild(this.header);
   }
 }
 
@@ -706,41 +723,48 @@ function TouchCtl() {
   ctlContainer.addChild(this.mousePos);
   ctlContainer.addChild(this.scope);
 
-  this.update = function () {
+  this.update = function (play) {
+    if (!this.touch) {
+      if (!this.mousePos.visible) {
+        this.mousePos.visible = true;
+        this.scope.visible = true;
+      }
+      this.mousePos.clear();
+      this.mousePos.beginFill(0x009900, .3);
+      this.mousePos.drawCircle(mouseposition.x, mouseposition.y, 15);
+      this.mousePos.endFill();
+      this.scope.x += (mouseposition.x - this.scope.x) / 2;
+      this.scope.y += (mouseposition.y - this.scope.y) / 2;
+    }
+
+    if (!play)
+      return;
     if (!touchLPos.t && !touchRPos.t) {
       this.leftCtl.visible = false;
       this.rightCtl.visible = false;
       if (!this.touch) {
-        if (!this.mousePos.visible) {
-          this.mousePos.visible = true;
-          this.scope.visible = true;
-        }
         let direction = {
           x: 0,
           y: 0
         }
         input.m = false;
         let key = controller.settings.key;
-        if (keys && keys[key.up]) { direction.x = -1; input.m = true }
-        if (keys && keys[key.down]) { direction.x = 1; input.m = true }
-        if (keys && keys[key.left]) { direction.y = -1; input.m = true }
-        if (keys && keys[key.right]) { direction.y = 1; input.m = true }
+        if (keys && keys[key.up]) { direction.y = -1; input.m = true }
+        if (keys && keys[key.down]) { direction.y = 1; input.m = true }
+        if (keys && keys[key.left]) { direction.x = -1; input.m = true }
+        if (keys && keys[key.right]) { direction.x = 1; input.m = true }
         if (input.m) {
           input.mangle = getAngle(0, 0, direction.x, direction.y);
         }
-        this.mousePos.clear();
-        this.mousePos.beginFill(0x009900, .3);
-        this.mousePos.drawCircle(mouseposition.x, mouseposition.y, 15);
-        this.mousePos.endFill();
-        this.scope.x += (mouseposition.x - this.scope.x) / 2;
-        this.scope.y += (mouseposition.y - this.scope.y) / 2;
+
       }
     } else {
       if (this.mousePos.visible) {
         this.mousePos.visible = false;
         this.scope.visible = false;
       }
-      this.tuchPadDraw();
+      if (this.touch)
+        this.tuchPadDraw();
     }
   }
 
