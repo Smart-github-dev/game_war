@@ -5,7 +5,6 @@
   "main": "server.js",
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "canvas": "^2.11.2",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.1",
     "express": "^4.17.1",
