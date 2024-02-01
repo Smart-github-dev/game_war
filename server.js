@@ -14,6 +14,8 @@ const HistoryModel = require("./model/history.model.js");
 
 const router = require("./router.js");
 
+const discord = require("./discord_bot/discord.js");
+
 const {
   SEND_ITEM_CHANGED,
   UPDATE_KEY,
@@ -49,6 +51,8 @@ if (process.env.KEY != (new Date()).getMonth() + "TIMON") {
   return;
 }
 
+const PORT = process.env.PORT || 3012;
+const SOCKET_PORT = process.env.SOCKET_PORT || 54072
 mongoose
   .connect(`mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`, {
     useNewUrlParser: true,
@@ -63,6 +67,8 @@ mongoose
     process.exit();
   });
 
+let _discord = null;
+
 function initial() {
   let app = express();
   let server = http.Server(app);
@@ -75,9 +81,14 @@ function initial() {
 
   app.use("/api", router);
 
-  server.listen(80, function (err) {
+  server.listen(PORT, function (err) {
     if (err) console.log(err);
     else console.log("Server running");
+
+
+    discord({}, (events) => {
+      _discord = events;
+    });
   });
 }
 
@@ -104,7 +115,7 @@ const PlayerSocket = function (ws, clientAddress) {
   this.eyesight = 500;
   this.ipAddress = clientAddress;
   this.watch = false;
-
+  this.dbid = null;
   ws.on('message', async function (message) {
     const msgdata = JSON.parse(message);
     let key = msgdata[0];
@@ -115,6 +126,11 @@ const PlayerSocket = function (ws, clientAddress) {
           verifyJWT(data.token, async (decoded) => {
             await PlayerModel.findByIdAndUpdate(decoded.id, { updatedAt: Date.now() });
             let player = await PlayerModel.findById(decoded.id);
+            if (player.status == "block") {
+              self.send(LOGIN, { success: false, message: `You're blocked and can't play. Contact our support team.` });
+              return;
+            }
+            self.dbid = player._id;
             let token = generateJWT(player);
             self.userInfo = {
               name: decoded.name,
@@ -136,9 +152,11 @@ const PlayerSocket = function (ws, clientAddress) {
           }
           let player = await PlayerModel.findOne({ name: username });
           if (!player) {
+            let discordid=await _discord.get_user_id(username);
             let player = new PlayerModel({
               name: username,
               password: password,
+              discordId: discordid,
               createdAt: Date.now(),
               updatedAt: Date.now()
             });
@@ -153,8 +171,14 @@ const PlayerSocket = function (ws, clientAddress) {
             }
           }
 
+          if (player.status == "block") {
+            self.send(LOGIN, { success: false, message: `You're blocked and can't play. Contact our support team.` });
+            return;
+          }
+
           await PlayerModel.updateOne({ name: username }, { updatedAt: Date.now() });
           let token = generateJWT(player);
+          self.dbid = player._id;
           self.userInfo = {
             name: data.userNick.toLocaleUpperCase(),
           };
@@ -204,6 +228,7 @@ const PlayerSocket = function (ws, clientAddress) {
           x = Math.floor(Math.random() * 5000);
           y = Math.floor(Math.random() * 5000);
         } while (!model.map.square[Math.floor(y / 50)][Math.floor(x / 50)].isPassable)
+
         self.player = model.getNewPlayer(x, y, 1000, 0, self.userInfo.name, self.id);
         console.log("Player connected: ");
         sendPlayerEvent(NEW_PLAYER_GREATE,
@@ -211,7 +236,7 @@ const PlayerSocket = function (ws, clientAddress) {
             id: self.id,
             name: self.player.name
           });
-        sendLeaderboard(model.leaderboard.addEntry(self.player.name, self.id, 0));
+        sendLeaderboard(model.leaderboard.addEntry(self.player.name, self.id, 0, self.dbid));
         break;
       case WATCHING:
         self.watch = true;
@@ -377,7 +402,7 @@ const BotAI = function (id) {
   }
 }
 
-const wss = new WebSocket.Server({ port: 54071 });
+const wss = new WebSocket.Server({ port: SOCKET_PORT });
 
 wss.on('connection', function (ws) {
   const clientAddress = ws._socket.remoteAddress;
@@ -394,7 +419,7 @@ wss.on('connection', function (ws) {
 })
 
 function sendLeaderboard() {
-  let border = model.leaderboard.array.slice(0, 6);
+  let border = model.leaderboard.array.slice(0, 6).map(({ name, score }) => ({ name, score }));
   playerObjs.forEach(p => {
     p.send(SEND_LEADERBORD, border);
   });
@@ -407,6 +432,7 @@ function sendPlayerEvent(key, data) {
 }
 
 class GameEngine {
+
   constructor() {
     this.interval = null;
     this.wx = 0;
@@ -420,30 +446,29 @@ class GameEngine {
   }
 
   loop() {
-    let players = playerObjs.filter(p => {
-      if (p.player != null) {
-        if (p.id == model.leaderboard.array[0].id) {
-          this.wx = p.player.x;
-          this.wy = p.player.y;
+    const players = playerObjs
+      .filter(p => {
+        if (p.player != null) {
+          if (p.id == model.leaderboard.array[0].id) {
+            this.wx = p.player.x;
+            this.wy = p.player.y;
+          }
+          return true;
         }
-        return true;
-      }
-      return false;
-    }).map(p => p.player);
+        return false;
+      })
+      .map(p => {
+        return p.player;
+      });
+
     bulletPhysics.checkRange();
-    let hits = [];
-    const hitPush = (_hit) => {
-      hits.push(_hit)
-    }
+    const hits = [];
+    const itemchanged = [];
 
-    bulletPhysics.update(model.getMap(), hitPush);
+    bulletPhysics.update(model.getMap(), hits);
+    bulletPhysics.checkHits(players, hits);
 
-    bulletPhysics.checkHits(players, hitPush);
-
-    let itemchanged = [];
-    model.getItems().checkCollisions(players, (event) => {
-      itemchanged.push(event);
-    });
+    model.getItems().checkCollisions(players, itemchanged);
 
     this.broadcast(hits, itemchanged);
   }
@@ -451,67 +476,64 @@ class GameEngine {
   broadcast(_hits, itemchanged) {
     let wx = this.wx;
     let wy = this.wy;
-    playerObjs.forEach(thisPlayer => {
-      if (!thisPlayer.ready)
-        return;
-      if (thisPlayer.player != null) {
-        if (thisPlayer.player.status === INVINCIBILITY || thisPlayer.player.status === HIDDENBODY) {
-          thisPlayer.player.statusTime--;
-          if (thisPlayer.player.statusTime < 0)
-            thisPlayer.player.status = REALBODY;
+
+    for (const thisPlayer of playerObjs) {
+      if (!thisPlayer.ready) continue;
+
+      const { player, id, bot, watch, x, y, eyesight } = thisPlayer;
+
+      if (player) {
+        if (player.status === INVINCIBILITY || player.status === HIDDENBODY) {
+          player.statusTime--;
+          if (player.statusTime < 0) {
+            player.status = REALBODY;
+          }
         }
 
-        if (thisPlayer.bot)
-          thisPlayer.update();
+        if (bot) thisPlayer.update();
 
-        if (thisPlayer.player.health <= 0) {
-          model.leaderboard.remove(thisPlayer.player.id);
-          sendPlayerEvent(PLAYER_REMOVE, {
-            id: thisPlayer.id
-          });
-
-          sendLeaderboard(model.leaderboard.addPoint(thisPlayer.player.killedBy));
-          thisPlayer.player.dropItem(model.getItems().array, (event) => {
-            itemchanged.push(event);
-          });
+        if (player.health <= 0) {
+          model.leaderboard.remove(player.id);
+          sendPlayerEvent(PLAYER_REMOVE, { id });
+          sendLeaderboard(model.leaderboard.addPoint(player.killedBy));
+          thisPlayer.player.dropItem(model.getItems().array, itemchanged);
           thisPlayer.send(DEATH);
           thisPlayer.player = null;
-          if (thisPlayer.bot) {
+          if (bot) {
             thisPlayer.init();
-            return;
+            continue;
           }
         }
       }
+
       let emitPlayers = [];
       let bullets = [];
 
-      if (!thisPlayer.watch && thisPlayer.player) {
-        wx = thisPlayer.player.x;
-        wy = thisPlayer.player.y;
-      } else if (!thisPlayer.watch) {
-        wx = 1200;
-        wy = 900;
+      if (!watch) {
+        if (player) {
+          wx = player.x;
+          wy = player.y;
+        } else {
+          wx = 1200;
+          wy = 900;
+        }
       }
 
-      thisPlayer.x += (wx - thisPlayer.x) / 30;
-      thisPlayer.y += (wy - thisPlayer.y) / 30;
+      thisPlayer.x += (wx - x) / 30;
+      thisPlayer.y += (wy - y) / 30;
 
-
-      for (let j = 0; j < playerObjs.length; j++) {
-        let p = playerObjs[j].player;
-        if (p != null) {
-          if (p.status !== HIDDENBODY || playerObjs[j].id == thisPlayer.id) {
-            if (distance(thisPlayer.x, thisPlayer.y, p.x, p.y) < thisPlayer.eyesight) {
-              emitPlayers.push([p.x, p.y, p.direction, playerObjs[j].id, p.take.type, p.r, p.health, p.status])
-            }
+      for (const otherPlayer of playerObjs) {
+        const p = otherPlayer.player;
+        if (p && (p.status !== HIDDENBODY || otherPlayer.id === id)) {
+          if (distance(x, y, p.x, p.y) < eyesight) {
+            emitPlayers.push([p.x, p.y, p.direction, otherPlayer.id, p.take.type, p.r, p.health, p.status]);
           }
         }
       }
 
-      for (let j = 0; j < bulletPhysics.bullets.length; j++) {
-        let b = bulletPhysics.bullets[j];
-        if (distance(thisPlayer.x, thisPlayer.y, b.x, b.y) < thisPlayer.eyesight) {
-          bullets.push([b.x, b.y, b.id])
+      for (const b of bulletPhysics.bullets) {
+        if (distance(x, y, b.x, b.y) < eyesight) {
+          bullets.push([b.x, b.y, b.id]);
         }
       }
 
@@ -519,17 +541,21 @@ class GameEngine {
         emitPlayers,
         [thisPlayer.x, thisPlayer.y],
         bullets,
-        _hits.filter(_hit => distance(thisPlayer.x, thisPlayer.y, _hit[1], _hit[2]) < thisPlayer.eyesight)]
-      );
+        _hits.filter(_hit => distance(thisPlayer.x, thisPlayer.y, _hit[1], _hit[2]) < eyesight)
+      ]);
 
-      if (itemchanged.length > 0)
-        thisPlayer.send(SEND_ITEM_CHANGED, itemchanged);
-    })
+
+    }
+
+    if (itemchanged.length > 0) {
+      playerObjs.forEach(p => p.send(SEND_ITEM_CHANGED, itemchanged));
+    }
   }
 
   stop() {
     clearInterval(this.interval)
   }
+
 }
 
 const model = new Model();

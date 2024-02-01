@@ -1,16 +1,7 @@
 'use strict';
 
-const {
-  HITSHIELD,
-  HITBRICK,
-  HITBODY,
-  INVINCIBILITY,
-  REALBODY,
-  ITEMS,
-  HIDDENBODY,
-  ADDITEM,
-  DELLITEM
-} = require("./gameTypeConfig");
+const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM, TERRAIN_SAND, TERRAIN_EDGE, TERRAIN_GRASS, TERRAIN_LAVA, TERRAIN_WATER, TERRAIN_BRICK, TERRAIN_FLOOR } = require("./gameTypeConfig");
+const playerModel = require("./model/player.model");
 const { distance } = require("./utills");
 
 
@@ -35,13 +26,14 @@ class Terrain {
   }
 }
 
-let sand = new Terrain(3, 'sand', 0, 1);
-let edge = new Terrain(3, 'edge', 0, 0);
-let grass = new Terrain(5, 'grass', 0, 1);
-let water = new Terrain(2, 'water', 0, 1);
-let lava = new Terrain(7, 'lava', 5, 1);
-let brick = new Terrain(3, 'brick', 0, 0);
-let floor = new Terrain(5, 'floor', 0, 1);
+
+const sand = new Terrain(3, TERRAIN_SAND, 0, 1);
+const edge = new Terrain(3, TERRAIN_EDGE, 0, 0);
+const grass = new Terrain(5, TERRAIN_GRASS, 0, 1);
+const water = new Terrain(2, TERRAIN_WATER, 0, 1);
+const lava = new Terrain(7, TERRAIN_LAVA, 5, 1);
+const brick = new Terrain(3, TERRAIN_BRICK, 0, 0);
+const floor = new Terrain(5, TERRAIN_FLOOR, 0, 1);
 
 class Point {
   constructor(xArg, yArg) {
@@ -224,7 +216,7 @@ class Player {
     this.take.x = this.x + 100 * dirX;
     this.take.y = this.y + 100 * dirY;
     if (!(this.take instanceof Pistol)) {
-      let oldw = {
+      changed.push({
         ...{
           type: ADDITEM,
           take: {
@@ -234,8 +226,7 @@ class Player {
             y: parseInt(this.take.y)
           }
         }
-      }
-      changed && changed(oldw);
+      });
       items.push(this.take);
     }
   }
@@ -262,21 +253,15 @@ class BulletPhysics {
     this.bullets = [];
   }
 
-  update(map, hitPush) {
-    for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const bullet = this.bullets[i];
-      const nextX = bullet.x + bullet.speed * Math.cos(bullet.direction);
-      const nextY = bullet.y + bullet.speed * Math.sin(bullet.direction);
-      bullet.distanceTraveled += bullet.speed;
-
-      const squareX = Math.floor(nextX / 50);
-      const squareY = Math.floor(nextY / 50);
-      if (map.square[squareY] && map.square[squareY][squareX] && !map.square[squareY][squareX].isPassable) {
-        hitPush([HITBRICK, parseInt(nextX), parseInt(nextY)]);
+  update(map, hits) {
+    for (let i = 0; i < this.bullets.length; i++) {
+      this.bullets[i].x += parseFloat(this.bullets[i].speed * Math.cos(this.bullets[i].direction));
+      this.bullets[i].y += parseFloat(this.bullets[i].speed * Math.sin(this.bullets[i].direction));
+      this.bullets[i].distanceTraveled += this.bullets[i].speed;
+      if (!map.square[Math.floor((this.bullets[i].y) / 50)][Math.floor((this.bullets[i].x) / 50)]?.isPassable) {
+        hits.push([HITBRICK, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
         this.bullets.splice(i, 1);
-      } else {
-        bullet.x = nextX;
-        bullet.y = nextY;
+        i--;
       }
     }
   }
@@ -292,34 +277,29 @@ class BulletPhysics {
     }
   }
 
-  checkHits(players, hitPush) {
-    for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const bullet = this.bullets[i];
-      const bulletX = parseInt(bullet.x);
-      const bulletY = parseInt(bullet.y);
-      for (let j = 0; j < players.length; j++) {
-        const player = players[j];
-        if (bullet.owner !== player.id) {
-          const minX = player.x - player.r / 2;
-          const maxX = player.x + player.r / 2;
-          const minY = player.y - player.r / 2;
-          const maxY = player.y + player.r / 2;
-          if (bulletX >= minX && bulletX <= maxX && bulletY >= minY && bulletY <= maxY) {
-            if (player.take instanceof Tool && player.take.run(bullet)) {
-              hitPush([HITSHIELD, bulletX, bulletY]);
+  checkHits(players, hits) {
+    for (let j = 0; j < players.length; j++) {
+      let player = players[j];
+      for (let i = 0; i < this.bullets.length; i++) {
+        if (player.take instanceof Tool) {
+          if (player.take.run(this.bullets[i])) {
+            hits.push([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
+            this.bullets.splice(i, 1);
+            return;
+          }
+        }
+        if (this.bullets[i].x >= player.x - player.r / 2 && this.bullets[i].x <= player.x + player.r / 2 && this.bullets[i].y >= player.y - player.r / 2 && this.bullets[i].y <= player.y + player.r / 2) {
+          if (this.bullets[i].owner != player.id) {
+            if (player.status !== INVINCIBILITY) {
+              player.health -= this.bullets[i].damage;
+              if (player.health <= 0)
+                player.killedBy = this.bullets[i].owner;
+              hits.push([HITBODY, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y), this.bullets[i].damage]);
             } else {
-              if (player.status !== INVINCIBILITY) {
-                player.health -= bullet.damage;
-                if (player.health <= 0) {
-                  player.killedBy = bullet.owner;
-                }
-                hitPush([HITBODY, bulletX, bulletY, bullet.damage]);
-              } else {
-                hitPush([HITSHIELD, bulletX, bulletY]);
-              }
+              hits.push([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
             }
             this.bullets.splice(i, 1);
-            break;
+            i--;
           }
         }
       }
@@ -347,30 +327,28 @@ class Items {
   checkCollisions(players, changed) {
     for (let j = 0; j < players.length; j++) {
       let player = players[j];
-      for (let i = this.array.length - 1; i >= 0; i--) {
-        let bullet = this.array[i];
-        if (bullet.x >= player.x - bullet.spriteWidth &&
-          bullet.x <= player.x + bullet.spriteWidth &&
-          bullet.y >= player.y - bullet.spriteHeight &&
-          bullet.y <= player.y + bullet.spriteHeight) {
-          if (bullet instanceof Weapon || bullet instanceof Shield) {
-            player.pickUpItem(bullet, this.array, changed);
-            changed({
+      for (let i = 0; i < this.array.length; i++) {
+        if (this.array[i].x >= player.x - this.array[i].spriteWidth && this.array[i].x <= player.x + this.array[i].spriteWidth && this.array[i].y >= player.y - this.array[i].spriteHeight && this.array[i].y <= player.y + this.array[i].spriteHeight) {
+          if (this.array[i] instanceof Weapon || this.array[i] instanceof Shield) {
+            player.pickUpItem(this.array[i], this.array, changed);
+            changed.push({
               ...{
                 type: DELLITEM,
-                id: bullet.id
+                id: this.array[i].id
               }
             });
             this.array.splice(i, 1);
+            i--;
           }
-          else if (bullet.apply(player)) {
-            changed({
+          else if (this.array[i].apply(player)) {
+            changed.push({
               ...{
                 type: DELLITEM,
-                id: bullet.id
+                id: this.array[i].id
               }
             });
             this.array.splice(i, 1);
+            i--;
           }
         }
       }
@@ -518,6 +496,7 @@ class Weapon extends Item {
     super();
     this.damage = dmg;
     this.accuracy = acc;
+    this.spriteName = "null";
     this.triggered = 0;
     this.lastShot = new Date();
     this.fireRate = fRate; // in miliseconds
@@ -571,8 +550,9 @@ class SemiAutomaticWeapon extends Weapon {
 
 class Pistol extends SemiAutomaticWeapon {
   constructor() {
-    super(300, 95, 400);
+    super(100, 95, 400);
     this.type = WEAPON1;
+    this.spriteName = "pistol";
     this.spriteWidth = 30;
     this.spriteHeight = 18;
   }
@@ -580,8 +560,9 @@ class Pistol extends SemiAutomaticWeapon {
 
 class Revolver extends SemiAutomaticWeapon {
   constructor() {
-    super(600, 100, 500);
+    super(250, 100, 500);
     this.type = WEAPON6;
+    this.spriteName = "revolver";
     this.spriteWidth = 40;
     this.spriteHeight = 20;
   }
@@ -591,6 +572,7 @@ class DoublePistol extends SemiAutomaticWeapon {
   constructor() {
     super(300, 95, 400);
     this.type = WEAPON2;
+    this.spriteName = "doublePistols";
     this.spriteWidth = 30;
     this.spriteHeight = 40;
   }
@@ -617,8 +599,9 @@ class DoublePistol extends SemiAutomaticWeapon {
 
 class Rifle extends AutomaticWeapon {
   constructor() {
-    super(400, 98, 150);
+    super(200, 98, 150);
     this.type = WEAPON3;
+    this.spriteName = "rifle";
     this.spriteWidth = 73;
     this.spriteHeight = 18;
   }
@@ -627,8 +610,9 @@ class Rifle extends AutomaticWeapon {
 
 class Smg extends AutomaticWeapon {
   constructor() {
-    super(100, 80, 50);
+    super(70, 80, 50);
     this.type = WEAPON4;
+    this.spriteName = "smg";
     this.spriteWidth = 50;
     this.spriteHeight = 20;
   }
@@ -636,8 +620,9 @@ class Smg extends AutomaticWeapon {
 
 class Gatling extends AutomaticWeapon {
   constructor() {
-    super(300, 70, 15);
+    super(150, 70, 15);
     this.type = WEAPON5;
+    this.spriteName = "gatling";
     this.spriteWidth = 90;
     this.spriteHeight = 33;
   }
@@ -645,20 +630,24 @@ class Gatling extends AutomaticWeapon {
 
 
 class Entry {
-  constructor(name, id, score) {
+  constructor(name, id, score, dbid) {
     this.name = name;
     this.id = id;
     this.score = score;
+    this.dbid = dbid || null
   }
 }
+
+
+
 
 class Leaderboard {
   constructor() {
     this.array = [];
   }
 
-  addEntry(name, id, score) {
-    this.array.push(new Entry(name, id, score));
+  addEntry(name, id, score, did) {
+    this.array.push(new Entry(name, id, score, did));
     return this.sort();
   }
 
@@ -666,10 +655,12 @@ class Leaderboard {
     for (let i = 0; i <= this.array.length; i++) {
       if (this.array[i]?.id == id) {
         this.array[i].score++;
+        if (this.array[i].dbid != null) {
+          addScore(this.array[i].dbid);
+        }
         break;
       }
     }
-
     return this.sort();
   }
 
@@ -690,6 +681,7 @@ class Leaderboard {
     return this.array;
   }
 }
+
 
 class Model {
   constructor() {
@@ -732,10 +724,14 @@ class Model {
 
 module.exports = Model;
 
-
-
 function generateitemId(key) {
-  return Math.random().toString(36).substr(2, 3) + key;
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  for (let i = 0; i < 3; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result + key;
 }
 
 function statusApply(player) {
@@ -746,4 +742,13 @@ function statusApply(player) {
     player.status = REALBODY;
   }
   return false;
+}
+
+
+async function addScore(id) {
+  try {
+    await playerModel.findByIdAndUpdate(id, { $inc: { score: 1 } });
+  } catch (error) {
+    console.log(error)
+  }
 }

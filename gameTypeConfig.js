@@ -28,6 +28,14 @@ module.exports.FETCH_PLAYERS = 0;
 module.exports.FETCH_ITEMS = 1;
 module.exports.FETCH_MAP = 2;
 
+module.exports.TERRAIN_SAND = 0;
+module.exports.TERRAIN_EDGE = 1;
+module.exports.TERRAIN_GRASS = 2;
+module.exports.TERRAIN_WATER = 3;
+module.exports.TERRAIN_LAVA = 4;
+module.exports.TERRAIN_BRICK = 5;
+module.exports.TERRAIN_FLOOR = 6;
+
 module.exports.ITEMS = {
     SHIELD: 0,
     WEAPON1: 1,

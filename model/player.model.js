@@ -7,9 +7,10 @@ const player = new mongoose.Schema({
     email: String,
     balance: Number,
     currency: String,
-    status: String,
+    status: { type: String, default: "active" },
     walletadress: String,
-    score: String,
+    score: { type: Number, default: 0 },
+    discordId: String,
     createdAt: String,
     updatedAt: String
 });

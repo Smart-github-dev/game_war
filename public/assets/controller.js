@@ -1,6 +1,5 @@
 'use strict';
 
-
 const playerinfokey = {
   x: 0,
   y: 1,
@@ -33,10 +32,10 @@ class Controller {
       audio: true,
       music: true,
       key: {
-        up: 65,
-        down: 68,
-        left: 87,
-        right: 83
+        up: 87,
+        down: 83,
+        left: 65,
+        right: 68
       }
     }
     this.gameMap = new GameMap();
@@ -563,15 +562,6 @@ class Item {
   }
 }
 
-class CurrentPlayer {
-  constructor() {
-    this.x = 0;
-    this.y = 0;
-  }
-}
-
-
-
 class Bullet {
   constructor(id, xArg, yArg) {
     this.id = id;
@@ -821,7 +811,6 @@ class Effect {
   }
 }
 
-
 class Explosion extends Effect {
 
   constructor(x, y) {
@@ -849,7 +838,7 @@ class BodyHit extends Effect {
   constructor(data) {
     super(30, new PIXI.Sprite(PIXI.loader.resources["bodyhit"].texture), data[1], data[2] - 50, 20, 20);
     this.hitamount = new PIXI.Text(data[3]);
-    this.hitamount.style = { fontSize: 14, fill: 'red' };
+    this.hitamount.style = { fontSize: 14, fill: '#ff3333', strokeThickness: 1 };
     this.hitamount.anchor.set(0.5, 0.5);
     this.hitamount.position.set(this.x, this.y);
     effectContainer.addChild(this.hitamount);
@@ -858,9 +847,9 @@ class BodyHit extends Effect {
     if (this.lifetime > 0) {
       this.lifetime--;
       this.sprite.alpha -= this.sprite.alpha / 5;
-      this.hitamount.style.fontSize += 0.2;
-      this.hitamount.alpha -= 0.01;
-      this.y -= 1;
+      this.hitamount.style.fontSize += 0.3;
+      this.hitamount.alpha -= 0.058;
+      this.y -= 1, 2;
       this.hitamount.position.set(this.x, this.y);
       this.sprite.width += 0.01;
       this.sprite.height += 0.01;

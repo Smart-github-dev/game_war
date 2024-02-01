@@ -4,7 +4,7 @@ const secretKey = 'multicopverse';
 module.exports.generateJWT = function (user) {
     const payload = {
         id: user._id,
-        name: user.username
+        name: user.name
     };
     const token = jwt.sign(payload, getGenerateSecreteKey(), { expiresIn: '1h' });
     return token;
@@ -40,7 +40,9 @@ module.exports.getAngle = function (x1, y1, x2, y2) {
     return Math.atan2(y2 - y1, x2 - x1);
 }
 
-module.exports.getGenerateSecreteKey = function () {
+const getGenerateSecreteKey = function () {
     let date = new Date();
     return date.getMonth() + secretKey + date.getMonth();
 }
+
+module.exports.getGenerateSecreteKey = getGenerateSecreteKey;

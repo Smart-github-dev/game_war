@@ -1,5 +1,16 @@
+
+let TERRAIN_TYPES = {
+    0: 'sand',
+    1: 'edge',
+    2: 'grass',
+    3: 'water',
+    4: 'lava',
+    5: 'brick',
+    6: 'floor'
+}
+
 function Terrain(pathArg) {
-    this.sprite = new PIXI.Sprite(PIXI.loader.resources[pathArg].texture);
+    this.sprite = new PIXI.Sprite(PIXI.loader.resources[TERRAIN_TYPES[pathArg]].texture);
 }
 
 let UPDATE_KEY = "0";
@@ -54,7 +65,7 @@ let ITEMS = {
 
 function WebSocketController(url) {
     this.listens = {};
-    this.socketUrl = url || `ws://${document.location.hostname}:54071`
+    this.socketUrl = url || `ws://${document.location.hostname}:54072`
     this.ws = new WebSocket(this.socketUrl);
     this.connected = false;
     this.disconnected = true;
@@ -171,9 +182,6 @@ let itemInfos = {
         distance: 10
     }
 };
-
-let currentPlayer = new CurrentPlayer();
-////////////////////////////////////////////////////////////////////////////////
 
 let input = {
     m: false,
