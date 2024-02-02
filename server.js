@@ -147,7 +147,7 @@ const PlayerSocket = function (ws, clientAddress) {
           }, () => {
             return;
           })
-        } else if (typeof data.userNick == 'string' && data.userNick.length > 2 && data.userNick.length < 10) {
+        } else if (typeof data.userNick == 'string' && data.userNick.length > 2 && data.userNick.length < 20) {
           if (data.userNick.includes(' ')) {
             self.send(LOGIN, { success: false, message: `Please remove spaces in nickname` });
           }
