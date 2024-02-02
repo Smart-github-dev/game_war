@@ -15,31 +15,6 @@ const player = new mongoose.Schema({
     updatedAt: String
 });
 
-player.pre('save', function (next) {
-    const user = this;
-
-    // Generate a salt for the password
-    bcrypt.genSalt(10, (err, salt) => {
-        if (err) {
-            return next(err);
-        }
-
-        // Hash the password using the salt
-        bcrypt.hash(user.password, salt, (err, hash) => {
-            if (err) {
-                return next(err);
-            }
-
-            // Replace the plaintext password with the hashed password
-            user.password = hash;
-
-            // Continue with the save operation
-            next();
-        });
-    });
-});
-
-
 player.methods.checkPassword = function (password) {
     const user = this;
     // Compare the plaintext password with the hashed password
