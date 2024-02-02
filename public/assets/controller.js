@@ -617,12 +617,19 @@ class LeaderBoard {
     leaderboardHorizontalLine.beginFill(0x0073e6, 0.7);
     leaderboardHorizontalLine.drawRect(800, 40, 180, 2);
     leaderboardHorizontalLine.endFill();
+
     this.stage.addChild(leaderboardHorizontalLine);
 
     let leaderboardTitle = new PIXI.Text("NICK              KILLS");
     leaderboardTitle.style = { fill: 'white', strokeThickness: 0, fontSize: 15 };
     leaderboardTitle.position.set(850, 20);
     this.stage.addChild(leaderboardTitle);
+
+    this.playercound = new PIXI.Text("0");
+    this.playercound.anchor.set(0.5, 0.5);
+    this.playercound.style = { fill: 'red', strokeThickness: 0, fontSize: 15 };
+    this.playercound.position.set(950, 15);
+    this.stage.addChild(this.playercound);
 
     this.ldeaderData = [];
     for (let i = 0; i < 7; i++) {
@@ -648,14 +655,15 @@ class LeaderBoard {
   }
 
   update(data) {
+    this.playercound.text = data.count;
     for (let i = 0; i < 7; i++) {
-      if (data[i]) {
+      if (data.ranking[i]) {
         if (!this.ldeaderData[i][0].visible) {
           this.ldeaderData[i][0].visible = true;
           this.ldeaderData[i][1].visible = true;
         }
-        this.ldeaderData[i][0].text = `${i + 1}. ${data[i].name}`;
-        this.ldeaderData[i][1].text = data[i].score;
+        this.ldeaderData[i][0].text = `${i + 1}. ${data.ranking[i].name}`;
+        this.ldeaderData[i][1].text = data.ranking[i].score;
       } else if (this.ldeaderData[i][0].visible) {
         this.ldeaderData[i][0].visible = false;
         this.ldeaderData[i][1].visible = false;

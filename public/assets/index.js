@@ -371,6 +371,7 @@ $(document).ready(function () {
                     <td><img src='${r.avatar}' class="rounded-circle" width='50px' height='50px' alt='avatar' /> ${r.name}</td>
                     <td>${r.score}</td>
                     <td>${i + 1}</td>
+                    <td><span class="badge badge-pill badge-success">0</span></td>
                   </tr>`
                 }))
                 loadinghidden()

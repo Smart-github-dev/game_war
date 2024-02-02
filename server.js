@@ -358,7 +358,7 @@ const BotAI = function (id) {
       id: self.id,
       name: self.player.name
     });
-    sendLeaderboard(model.leaderboard.addEntry(self.player.name, self.id, 0));
+    // sendLeaderboard(model.leaderboard.addEntry(self.player.name, self.id, 0));
     this.ready = true;
   }
   this.update = function (players) {
@@ -435,7 +435,7 @@ wss.on('connection', function (ws) {
 function sendLeaderboard() {
   let border = model.leaderboard.array.slice(0, 6).map(({ name, score }) => ({ name, score }));
   playerObjs.forEach(p => {
-    p.send(SEND_LEADERBORD, border);
+    p.send(SEND_LEADERBORD, { ranking: border, count: model.leaderboard.array.length });
   });
 }
 
@@ -463,7 +463,7 @@ class GameEngine {
     const players = playerObjs
       .filter(p => {
         if (p.player != null) {
-          if (p.id == model.leaderboard.array[0].id) {
+          if (model.leaderboard.array[0] && p.id == model.leaderboard.array[0].id) {
             this.wx = p.player.x;
             this.wy = p.player.y;
           }
@@ -507,7 +507,6 @@ class GameEngine {
         if (bot) thisPlayer.update();
 
         if (player.health <= 0) {
-          model.leaderboard.remove(player.id);
           sendPlayerEvent(PLAYER_REMOVE, { id });
           sendLeaderboard(model.leaderboard.addPoint(player.killedBy));
           thisPlayer.player.dropItem(model.getItems().array, itemchanged);
@@ -516,6 +515,8 @@ class GameEngine {
           if (bot) {
             thisPlayer.init();
             continue;
+          } else {
+            model.leaderboard.remove(player.id);
           }
         }
       }
