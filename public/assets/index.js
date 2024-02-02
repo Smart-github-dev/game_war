@@ -426,6 +426,7 @@ $(document).ready(function () {
             controller.settings.music = true;
         }
         $("#music").html(`<img src="./assets/img/music_${controller.settings.music ? 'o' : 'f'}.svg" alt="music_icon" width="50px" height="50px">`);
+        localStorage.setItem("game_setting", JSON.stringify(controller.settings));
     })
 
     $("#audio").click(function () {
@@ -435,6 +436,7 @@ $(document).ready(function () {
             controller.settings.audio = true;
         }
         $("#audio").html(`<img src="./assets/img/audio_${controller.settings.audio ? 'o' : 'f'}.svg" alt="audio_icon" width="50px" height="50px">`);
+        localStorage.setItem("game_setting", JSON.stringify(controller.settings));
     })
 
     $("#logout").click(function () {
