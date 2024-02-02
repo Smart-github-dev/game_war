@@ -420,9 +420,9 @@ $(document).ready(function () {
     $("#music").click(function () {
         if (controller.settings.music) {
             controller.settings.music = false;
-            PIXI.sound.play('bgSound');
-        } else {
             PIXI.sound.stop('bgSound');
+        } else {
+            PIXI.sound.play('bgSound');
             controller.settings.music = true;
         }
         $("#music").html(`<img src="./assets/img/music_${controller.settings.music ? 'o' : 'f'}.svg" alt="music_icon" width="50px" height="50px">`);
