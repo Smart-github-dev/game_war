@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
-const bcrypt = require('bcrypt');
-
-const player = new mongoose.Schema({
+const bcrypt = require("bcrypt");
+const Player = new mongoose.Schema({
+    userId: String,
+    avatar: {
+        type: String,
+        default: "avatars/default.ico"
+    },
     name: String,
     password: String,
     email: String,
@@ -10,37 +14,15 @@ const player = new mongoose.Schema({
     status: { type: String, default: "active" },
     walletadress: String,
     score: { type: Number, default: 0 },
-    discordId: String,
+    tag: String,
     createdAt: String,
     updatedAt: String
 });
 
-player.pre('save', function (next) {
-    const user = this;
-
-    // Generate a salt for the password
-    bcrypt.genSalt(10, (err, salt) => {
-        if (err) {
-            return next(err);
-        }
-
-        // Hash the password using the salt
-        bcrypt.hash(user.password, salt, (err, hash) => {
-            if (err) {
-                return next(err);
-            }
-
-            // Replace the plaintext password with the hashed password
-            user.password = hash;
-
-            // Continue with the save operation
-            next();
-        });
-    });
-});
 
 
-player.methods.checkPassword = function (password) {
+
+Player.methods.checkPassword = function (password) {
     const user = this;
     // Compare the plaintext password with the hashed password
     return bcrypt.compare(password, user.password);
@@ -48,7 +30,8 @@ player.methods.checkPassword = function (password) {
 
 
 module.exports = mongoose.model(
-    "players",
-    player
+    "Player",
+    Player
 );
+
 

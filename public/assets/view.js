@@ -33,6 +33,7 @@ var playerAnimationframes = {};
 
 function initGame() {
   const loader = PIXI.loader;
+
   loader
     .add("grass", "assets/sprites/grass.png")
     .add("sand", "assets/sprites/sand.png")
@@ -60,6 +61,10 @@ function initGame() {
     .add('scope', 'assets/sprites/scope.svg')
     .add('outb', 'assets/sprites/out.svg')
     .load(setup);
+
+  PIXI.sound.add('weaponSh', 'assets/sounds/Weaponshoot.mp3');
+  PIXI.sound.add('bgSound', 'assets/sounds/BackgroundMusic.mp3')
+
 
   let progressBar = new PIXI.Graphics();
   progressBar.x = 100;
@@ -91,7 +96,8 @@ function initGame() {
   document.body.appendChild(app.view);
 }
 
-function setup() {
+function setup(resources) {
+
   let textures = PIXI.loader.resources["explosion1"].textures;
   explosionFrames['explosion1'] = [];
   for (var i in textures) {
@@ -132,6 +138,7 @@ function setup() {
   controller.listenLeaderboard();
   controller.listenToItemChange();
   controller.listenToPlayerEvent();
+  PIXI.sound.play('bgSound');
 }
 
 function gameStart() {

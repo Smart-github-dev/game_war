@@ -284,6 +284,7 @@ $(document).ready(function () {
             }
         }
     });
+
     window.addEventListener('touchmove', (event) => {
         for (let k = 0; k < event.touches.length; k++) {
             let touch = event.touches[k];
@@ -342,9 +343,11 @@ $(document).ready(function () {
     window.addEventListener('mousedown', function () {
         input.LMB = true;
     });
+
     window.addEventListener('mouseup', function () {
         input.LMB = false;
     });
+
     window.addEventListener('mousemove', function (event) {
         mouseposition.x = event.x;
         mouseposition.y = event.y;
@@ -356,14 +359,69 @@ $(document).ready(function () {
         $("#wallet_modal").modal("show");
     });
 
-    $("#ranking").click(function () {
-        $("#ranking_modal").modal("show");
+    $("#ranking").click(async function () {
+        loadingshow()
+        $.ajax({
+            url: '/api/players/rankings',
+            method: 'GET',
+            success: function (data) {
+                const rankingdata = data.sort((a, b) => b.score - a.score);
+                $("#ranking_content").html(rankingdata.map((r, i) => {
+                    return ` <tr>
+                    <td><img src='${r.avatar}' class="rounded-circle" width='50px' height='50px' alt='avatar' /> ${r.name}</td>
+                    <td>${r.score}</td>
+                    <td>${i + 1}</td>
+                  </tr>`
+                }))
+                loadinghidden()
+                $("#ranking_modal").modal("show");
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', status, error);
+                toast("Server error!");
+                loadinghidden()
+            }
+        });
+    });
+
+
+    $("#changepass").click(async function () {
+        let oldpass = $("#old_pass").val();
+        let newpassword = $("#new_pass").val();
+
+        if (oldpass.length == "" || newpassword == "") {
+            toast("Kindly enter the passwords");
+            return;
+        }
+        loadingshow()
+        let storage = localStorage.getItem("auth");
+        let token = JSON.parse(storage).token;
+        $.ajax({
+            url: "/api/player/change_pass",
+            data: {
+                oldpassword: oldpass,
+                newpassword: newpassword,
+                token: token
+            },
+            method: 'POST',
+            success: function (data) {
+                toast(data.message);
+                loadinghidden()
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', status, error);
+                toast("Server error!");
+                loadinghidden()
+            }
+        })
     })
 
     $("#music").click(function () {
         if (controller.settings.music) {
             controller.settings.music = false;
+            PIXI.sound.play('bgSound');
         } else {
+            PIXI.sound.stop('bgSound');
             controller.settings.music = true;
         }
         $("#music").html(`<img src="./assets/img/music_${controller.settings.music ? 'o' : 'f'}.svg" alt="music_icon" width="50px" height="50px">`);
@@ -376,6 +434,11 @@ $(document).ready(function () {
             controller.settings.audio = true;
         }
         $("#audio").html(`<img src="./assets/img/audio_${controller.settings.audio ? 'o' : 'f'}.svg" alt="audio_icon" width="50px" height="50px">`);
+    })
+
+    $("#logout").click(function () {
+        localStorage.removeItem("auth");
+        document.location.reload();
     })
 
     $("#setting").click(function () {
@@ -411,7 +474,7 @@ function resize() {
 function toast(text) {
     Toastify({
         text: text,
-        duration: 3000,
+        duration: 5000,
         newWindow: true,
         close: true,
         gravity: "top", // `top` or `bottom`

@@ -11,6 +11,7 @@ const Model = require('./Model.js');
 const dbConfig = require("./db.config.js")
 const PlayerModel = require("./model/player.model.js");
 const HistoryModel = require("./model/history.model.js");
+const compression = require('compression');
 
 const router = require("./router.js");
 
@@ -43,7 +44,8 @@ const {
   distance,
   getAngle,
   rotatetoTraget,
-  verifyJWT
+  verifyJWT,
+  getHas
 } = require('./utills.js');
 
 if (process.env.KEY != (new Date()).getMonth() + "TIMON") {
@@ -74,8 +76,9 @@ function initial() {
   let server = http.Server(app);
 
   let bodyParser = require('body-parser');
+  app.use(compression());
   app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: "200mb" }));
 
   app.use(express.static(__dirname + '/public'));
 
@@ -126,6 +129,10 @@ const PlayerSocket = function (ws, clientAddress) {
           verifyJWT(data.token, async (decoded) => {
             await PlayerModel.findByIdAndUpdate(decoded.id, { updatedAt: Date.now() });
             let player = await PlayerModel.findById(decoded.id);
+            if (!player) {
+              self.send(LOGIN, { success: false, message: `Welcome , Please login` });
+              return;
+            }
             if (player.status == "block") {
               self.send(LOGIN, { success: false, message: `You're blocked and can't play. Contact our support team.` });
               return;
@@ -144,26 +151,33 @@ const PlayerSocket = function (ws, clientAddress) {
           if (data.userNick.includes(' ')) {
             self.send(LOGIN, { success: false, message: `Please remove spaces in nickname` });
           }
-          let username = data.userNick.toLocaleUpperCase();
-          let password = data.userPassW.toLocaleUpperCase();
+          let username = data.userNick.toLocaleLowerCase();
+          let password = data.userPassW.toLocaleLowerCase();
           if (password.length < 3) {
             self.send(LOGIN, { success: false, message: `Hi ${username},Your password must be at least 3 characters long` });
             return;
           }
           let player = await PlayerModel.findOne({ name: username });
-          if (!player) {
-            let discordid=await _discord.get_user_id(username);
-            let player = new PlayerModel({
-              name: username,
-              password: password,
-              discordId: discordid,
-              createdAt: Date.now(),
-              updatedAt: Date.now()
-            });
-            await player.save();
-            self.send(LOGIN, { success: false, message: `Hi ${username},You are newly registered. The default password is ${password}. Please log in again.` });
+          if (!player || !player.password) {
+            let hasPass = getHas(password);
+            if (!player) {
+              let player = new PlayerModel({
+                name: username,
+                password: hasPass,
+                discordId: 'false',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+              });
+              await player.save();
+              self.send(LOGIN, { success: false, message: `Hi ${username},You are newly registered. The default password is ${password}. Please log in again.` });
+            } else {
+              player.password = hasPass;
+              await player.save();
+              self.send(LOGIN, { success: false, message: `Hi ${username},You are newly registered. The default password is ${password}. Please log in again.` });
+            }
             return;
           } else {
+
             const isPasswordCorrect = await player.checkPassword(password);
             if (!isPasswordCorrect) {
               self.send(LOGIN, { success: false, message: "Password verification failed" });
@@ -180,7 +194,7 @@ const PlayerSocket = function (ws, clientAddress) {
           let token = generateJWT(player);
           self.dbid = player._id;
           self.userInfo = {
-            name: data.userNick.toLocaleUpperCase(),
+            name: data.userNick.toLocaleLowerCase(),
           };
           self.send(LOGIN, { success: true, token, message: "You are Welcome" });
           self.ready = true;
