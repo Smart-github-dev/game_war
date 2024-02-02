@@ -89,9 +89,9 @@ function initial() {
     else console.log("Server running");
 
 
-    discord({}, (events) => {
-      _discord = events;
-    });
+    // discord({}, (events) => {
+    //   _discord = events;
+    // });
   });
 }
 
@@ -147,7 +147,7 @@ const PlayerSocket = function (ws, clientAddress) {
           }, () => {
             return;
           })
-        } else if (typeof data.userNick == 'string' && data.userNick.length > 2) {
+        } else if (typeof data.userNick == 'string' && data.userNick.length > 2 && data.userNick.length < 10) {
           if (data.userNick.includes(' ')) {
             self.send(LOGIN, { success: false, message: `Please remove spaces in nickname` });
           }
@@ -199,7 +199,11 @@ const PlayerSocket = function (ws, clientAddress) {
           self.send(LOGIN, { success: true, token, message: "You are Welcome" });
           self.ready = true;
         } else {
-          self.send(LOGIN, { success: false, message: "You must enter 3+ characters" });
+          if (data.userNick.length >= 10) {
+            self.send(LOGIN, { success: false, message: "Hello, my nickname is too long. Please shorten it." })
+            return;
+          }
+          self.send(LOGIN, { success: false, message: "You must enter 3+ characters " });
         }
         break;
       case FETCH_REQ:
