@@ -59,9 +59,9 @@ router.post("/player/change_pass", async function (req, res) {
     }
 })
 
-router.post("/players/delete", async function (req, res) {
+router.post("/players_delete/:id", async function (req, res) {
     try {
-        const { id } = req.body;
+        const { id } = req.params;
         const player = await PlayerModel.findByIdAndDelete(id);
         res.json(player);
     } catch (error) {
@@ -78,14 +78,13 @@ router.post("/historys", async function (req, res) {
     }
 })
 
-router.post("/players/clear", async function (req, res) {
-    PlayerModel.remove({}, (err) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json({ message: "success", success: true });
-        }
-    });
+router.post("/players_all_clear", async function (req, res) {
+    try {
+        await PlayerModel.deleteMany();
+        res.json({ message: "success", success: true });
+    } catch (error) {
+        res.json(error);
+    }
 })
 
 router.post("/players/:id/:status", async function (req, res) {
@@ -98,7 +97,7 @@ router.post("/players/:id/:status", async function (req, res) {
     }
 })
 
-router.post("/historys/clear", async function (req, res) {
+router.post("/historys_all_clear", async function (req, res) {
     try {
         await HistoryModel.deleteMany();
         res.json({ message: "success", success: true });
