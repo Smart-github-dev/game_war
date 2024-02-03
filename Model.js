@@ -238,7 +238,7 @@ class Bullet {
     this.x = xArg;
     this.y = yArg;
     this.direction = directionArg;
-    this.speed = 20;
+    this.speed = 25;
     this.range = 800;
     this.distanceTraveled = 0;
     this.damage = damageArg;

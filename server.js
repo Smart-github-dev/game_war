@@ -89,9 +89,9 @@ function initial() {
     else console.log("Server running");
 
 
-    // discord({}, (events) => {
-    //   _discord = events;
-    // });
+    discord({}, (events) => {
+      _discord = events;
+    });
   });
 }
 
@@ -552,7 +552,7 @@ class GameEngine {
 
       for (const b of bulletPhysics.bullets) {
         if (distance(x, y, b.x, b.y) < eyesight) {
-          bullets.push([b.x, b.y, b.id]);
+          bullets.push([parseInt(b.x * 100) / 100, parseInt(b.y * 100) / 100, b.id]);
         }
       }
 
