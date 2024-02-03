@@ -3,6 +3,7 @@
 const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM, TERRAIN_SAND, TERRAIN_EDGE, TERRAIN_GRASS, TERRAIN_LAVA, TERRAIN_WATER, TERRAIN_BRICK, TERRAIN_FLOOR } = require("./gameTypeConfig");
 const playerModel = require("./model/player.model");
 const { distance } = require("./utills");
+const cron = require('node-cron');
 
 
 const {
@@ -281,20 +282,23 @@ class BulletPhysics {
     for (let j = 0; j < players.length; j++) {
       let player = players[j];
       for (let i = 0; i < this.bullets.length; i++) {
-        if (player.take instanceof Tool) {
-          if (player.take.run(this.bullets[i])) {
+        if (player.take instanceof Shield) {
+          if (distance(this.bullets[i].x, this.bullets[i].y, player.take.x, player.take.y) < player.take.spriteWidth) {
             hits.push([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
             this.bullets.splice(i, 1);
             return;
           }
         }
-        if (this.bullets[i].x >= player.x - player.r / 2 && this.bullets[i].x <= player.x + player.r / 2 && this.bullets[i].y >= player.y - player.r / 2 && this.bullets[i].y <= player.y + player.r / 2) {
-          if (this.bullets[i].owner != player.id) {
+        if (this.bullets[i].owner != player.id) {
+          if (this.bullets[i].x >= player.x - 15 &&
+            this.bullets[i].x <= player.x + 15 &&
+            this.bullets[i].y >= player.y - 15 &&
+            this.bullets[i].y <= player.y + 15) {
             if (player.status !== INVINCIBILITY) {
+              hits.push([HITBODY, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y), this.bullets[i].damage]);
               player.health -= this.bullets[i].damage;
               if (player.health <= 0)
                 player.killedBy = this.bullets[i].owner;
-              hits.push([HITBODY, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y), this.bullets[i].damage]);
             } else {
               hits.push([HITSHIELD, parseInt(this.bullets[i].x), parseInt(this.bullets[i].y)]);
             }
@@ -354,6 +358,33 @@ class Items {
       }
     }
   };
+
+  addtools() {
+    for (let i = 0; i < amount; i++) {
+      let item = new Item();
+      switch (Math.floor(Math.random() * 3)) {
+        case 0:
+          item = new HealthPack();
+          break;
+        case 1:
+          item = new HealthPack();
+          break;
+        case 2:
+          item = new HiddenMedicine();
+          break;
+      }
+      let newX, newY;
+      do {
+        newX = Math.random() * 5000;
+        newY = Math.random() * 5000;
+      } while (!mapSquares[Math.floor(newX / 50)][Math.floor(newY / 50)].isPassable);
+
+      item.x = newX;
+      item.y = newY;
+      item.id = generateitemId(this.array.length);
+      this.array.push(item);
+    }
+  }
 
   generateItems(amount, mapSquares) {
     let gatling = new Gatling();
@@ -688,6 +719,10 @@ class Model {
     this.map = new Map();
     this.items = new Items(this.map.square);
     this.leaderboard = new Leaderboard();
+
+    cron.schedule('0/5 * * * *', () => {
+      this.items.addtools(50);
+    });
   };
 
   getLeaderboard() {
