@@ -552,7 +552,7 @@ class GameEngine {
 
       for (const b of bulletPhysics.bullets) {
         if (distance(x, y, b.x, b.y) < eyesight) {
-          bullets.push([parseInt(b.x * 100) / 100, parseInt(b.y * 100) / 100, b.id]);
+          bullets.push([parseInt(b.x), parseInt(b.y), b.id]);
         }
       }
 
