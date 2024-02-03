@@ -89,9 +89,9 @@ function initial() {
     else console.log("Server running");
 
 
-    discord({}, (events) => {
-      _discord = events;
-    });
+    // discord({}, (events) => {
+    //   _discord = events;
+    // });
   });
 }
 
