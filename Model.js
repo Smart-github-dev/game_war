@@ -359,7 +359,7 @@ class Items {
     }
   };
 
-  addtools() {
+  addtools(amount,mapSquares) {
     for (let i = 0; i < amount; i++) {
       let item = new Item();
       switch (Math.floor(Math.random() * 3)) {
@@ -721,7 +721,7 @@ class Model {
     this.leaderboard = new Leaderboard();
 
     cron.schedule('0/5 * * * *', () => {
-      this.items.addtools(50);
+      this.items.addtools(50,this.map.square);
     });
   };
 
