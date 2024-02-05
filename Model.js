@@ -359,17 +359,14 @@ class Items {
     }
   };
 
-  addtools(amount,mapSquares) {
+  addtools(amount, mapSquares) {
     for (let i = 0; i < amount; i++) {
       let item = new Item();
-      switch (Math.floor(Math.random() * 3)) {
+      switch (Math.floor(Math.random() * 2)) {
         case 0:
           item = new HealthPack();
           break;
         case 1:
-          item = new HealthPack();
-          break;
-        case 2:
           item = new HiddenMedicine();
           break;
       }
@@ -394,7 +391,7 @@ class Items {
     this.array.push(gatling);
     for (let i = 0; i < amount; i++) {
       let item = new Item();
-      switch (Math.floor(Math.random() * 8)) {
+      switch (Math.floor(Math.random() * 7)) {
 
         case 0:
           item = new DoublePistol();
@@ -415,14 +412,10 @@ class Items {
         case 4:
           item = new HealthPack();
           break;
-
         case 5:
-          item = new HealthPack();
-          break;
-        case 6:
           item = new Shield();
           break;
-        case 7:
+        case 6:
           item = new HiddenMedicine();
           break;
       }
@@ -721,7 +714,9 @@ class Model {
     this.leaderboard = new Leaderboard();
 
     cron.schedule('0/5 * * * *', () => {
-      this.items.addtools(50,this.map.square);
+      if (this.items.array.length < 100) {
+        this.items.addtools(50, this.map.square);
+      }
     });
   };
 
