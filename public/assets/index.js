@@ -11,6 +11,8 @@ let TERRAIN_TYPES = {
 
 function Terrain(pathArg) {
     this.sprite = new PIXI.Sprite(PIXI.loader.resources[TERRAIN_TYPES[pathArg]].texture);
+    this.sprite.width=50;
+    this.sprite.height=50;
 }
 
 let UPDATE_KEY = "0";
@@ -160,7 +162,7 @@ let itemInfos = {
     2: {
         sprite: "doublePistols",
         w: 30,
-        h: 48,
+        h: 35,
         distance: 10
     },
     3: {
