@@ -15,7 +15,6 @@ const compression = require('compression');
 
 const router = require("./router.js");
 
-const discord = require("./discord_bot/discord.js");
 
 const {
   SEND_ITEM_CHANGED,
@@ -69,7 +68,6 @@ mongoose
     process.exit();
   });
 
-let _discord = null;
 
 function initial() {
   let app = express();
@@ -87,11 +85,6 @@ function initial() {
   server.listen(PORT, function (err) {
     if (err) console.log(err);
     else console.log("Server running");
-
-
-    // discord({}, (events) => {
-    //   _discord = events;
-    // });
   });
 }
 
