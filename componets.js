@@ -1,10 +1,9 @@
 'use strict';
 
-const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM, TERRAIN_SAND, TERRAIN_EDGE, TERRAIN_GRASS, TERRAIN_LAVA, TERRAIN_WATER, TERRAIN_BRICK, TERRAIN_FLOOR } = require("./gameTypeConfig");
+const { HITSHIELD, HITBRICK, HITBODY, INVINCIBILITY, REALBODY, ITEMS, HIDDENBODY, ADDITEM, DELLITEM, TERRAIN_SAND, TERRAIN_EDGE, TERRAIN_GRASS, TERRAIN_LAVA, TERRAIN_WATER, TERRAIN_BRICK, TERRAIN_FLOOR } = require("./types");
 const playerModel = require("./model/player.model");
-const { distance } = require("./utills");
+const { distance, generateitemId } = require("./utills");
 const cron = require('node-cron');
-
 
 const {
   SHIELD,
@@ -52,7 +51,7 @@ class Map {
       this.square[i] = [];
       for (let j = 0; j < this.widthInSquares; j++) {
         if (i == 0 || j == 0 || i == 99 || j == 99)
-          this.square[i][j] = edge;
+          this.square[i][j] = brick;
         else
           this.square[i][j] = grass;
 
@@ -81,7 +80,6 @@ class Map {
     this.createBuilding(3, 43, 20, 15, 2);
 
   }
-
 
   createArea(center, size, randomness, type) { ///using a DFS algorithm
     let queue = [];
@@ -196,7 +194,7 @@ class Player {
     this.take = new Pistol();
     this.score = 0;
     this.killedBy = "notAPlayer";
-    this.r = 30;
+    this.r = 20;
     this.status = INVINCIBILITY;
     this.statusTime = 176;
   }
@@ -246,7 +244,6 @@ class Bullet {
     this.owner = ownerArg;
     this.id = generateitemId('b')
   };
-
 }
 
 class BulletPhysics {
@@ -514,7 +511,6 @@ class Shield extends Tool {
 
 }
 
-
 class Weapon extends Item {
   constructor(dmg, acc, fRate) {
     super();
@@ -754,16 +750,6 @@ class Model {
 
 module.exports = Model;
 
-function generateitemId(key) {
-  let result = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  for (let i = 0; i < 3; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result + key;
-}
-
 function statusApply(player) {
   if (player.status == INVINCIBILITY) {
     return true;
@@ -782,3 +768,6 @@ async function addScore(id) {
     console.log(error)
   }
 }
+
+
+

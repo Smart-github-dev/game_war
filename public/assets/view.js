@@ -85,7 +85,7 @@ function initGame() {
     let progress = loader.progress / 100;
     progressBar.clear();
     progressBar.beginFill(0x0099ff, 1);
-    progressBar.drawRect(progressX, 0, 400 * progress, 20);
+    progressBar.drawRect(progressX, 0, 600 * progress, 20);
     progressBar.endFill();
   });
 
@@ -97,7 +97,6 @@ function initGame() {
 }
 
 function setup(resources) {
-
   let textures = PIXI.loader.resources["explosion1"].textures;
   explosionFrames['explosion1'] = [];
   for (var i in textures) {
@@ -122,14 +121,7 @@ function setup(resources) {
   btn.height = 30;
   btn.anchor.set(0.5);
   btnOut.addChild(btn);
-
-  controller.fetchData(function () {
-    loadinghidden();
-    $("#main-page").show();
-    controller.emitInput();
-    app.ticker.add(delta => controller.update(delta));
-  });
-
+  controller.emitInput();
   controller.touchCtl = new TouchCtl();
   controller.listenToChat();
   controller.listenToUpdate();
@@ -138,7 +130,18 @@ function setup(resources) {
   controller.listenLeaderboard();
   controller.listenToItemChange();
   controller.listenToPlayerEvent();
-  PIXI.sound.play('bgSound');
+  controller.listenToJoined();
+  controller.listenToRoomDatas();
+  controller.fetchRooms();
+  if (controller.settings.music) {
+    PIXI.sound.play('bgSound');
+  }
+  app.ticker.add(delta => controller.update(delta));
+  $("#main-page").show();
+
+  app.stage.addChild(containerMask);
+  app.stage.addChild(mainContainer);
+  app.stage.addChild(ctlContainer);
 }
 
 function gameStart() {
@@ -190,9 +193,7 @@ mainContainer.addChild(playerWContainer);
 mainContainer.addChild(playerHContainer);
 
 mainContainer.addChild(effectContainer);
-app.stage.addChild(containerMask);
-app.stage.addChild(mainContainer);
-app.stage.addChild(ctlContainer);
+
 
 
 // Create a button
@@ -210,3 +211,31 @@ btnOut.on('pointerdown', () => {
   outPlay();
 });
 
+
+const showRoom = () => {
+  $("#rooms").html(controller.rooms.map(r => {
+    return `<button class="col-sm-4 m-1 btn border ${r.id == controller.roomid ? 'border-primary bg-info' : ''}" onclick='selectRoom("${r.id}")' >
+      <div class="card room-card  ">
+        <div class="card-body text-warning d-flex justify-content-center align-items-center" >
+          ${r.name} : ${r.count}  
+          <span class="rounded-circle bg-success mx-1" style="width:15px;height:15px;display:flex" ></span>
+        </div>
+      </div>
+    </button>`;
+  }).concat(`<button class="col-sm-4 m-1 btn border" onclick='createRoom()' >
+  <div class="card room-card  ">
+    <div class="card-body text-warning d-flex justify-content-center align-items-center" >
+      <img src="./assets/img/create.svg" width="30px" height="30px" alt="create">
+    </div>
+  </div>
+</button>`));
+}
+
+
+const selectRoom = (id) => {
+  controller.joinRequest(id)
+}
+
+const createRoom = () => {
+  toast("It's not working yet")
+}

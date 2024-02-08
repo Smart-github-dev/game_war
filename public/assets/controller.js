@@ -17,8 +17,6 @@ class Controller {
     this.squareHeightInPixels = 50;
     this.width = 1000;         // default: 800
     this.height = 700;
-    this.playerSpriteWidth = 50;
-    this.playerSpriteHeight = 50;
     this.mode = 'alive';
     this.fps = 0;
     this.frameCount = 0;
@@ -30,7 +28,7 @@ class Controller {
     this.status = "ready";
     this.settings = {
       audio: true,
-      music: true,
+      music: false,
       key: {
         up: 87,
         down: 83,
@@ -42,6 +40,8 @@ class Controller {
     this.smallMap = new SmallMapDraw();
     this.touchCtl;
 
+    this.roomid = null;
+    this.rooms = [];
     this.players = [];
     this.bullets = [];
     this.items = [];
@@ -53,9 +53,19 @@ class Controller {
     this.initGame = function () { }
   }
 
+  fetchRooms() {
+    socket.send(ROOMS);
+  }
+
   fetchData(callback) {
     socket.send(FETCH_REQ, FETCH_MAP);
     this.initGame = callback;
+  }
+
+  joinRequest(id) {
+    if (this.roomid != id) {
+      socket.send(JOIN_ROOM, id);
+    }
   }
 
   newPlayer() {
@@ -75,6 +85,17 @@ class Controller {
     clearInterval(this.intervalTime);
   }
 
+  listenToJoined() {
+    let self = this;
+    socket.listens[JOIN_ROOM] = function (id) {
+      self.roomid = id;
+      self.clear();
+      self.fetchData(function () {
+        showRoom();
+      });
+    }
+  }
+
   listenToFetchRes() {
     let self = this;
     socket.listens[FETCH_RES] = function (data) {
@@ -83,21 +104,21 @@ class Controller {
         socket.send(FETCH_REQ, FETCH_ITEMS);
       }
       if (data.key == FETCH_ITEMS) {
-        self.items = data.data.map(item => {
-          return new Item(
+        data.data.forEach(item => {
+          self.items.push(new Item(
             item.id,
             item.type,
             item.x,
             item.y,
             (Math.random() * (0 - 360)) * (Math.PI / 180)
-          )
-        });
+          ))
+        })
         socket.send(FETCH_REQ, FETCH_PLAYERS);
       }
       if (data.key == FETCH_PLAYERS) {
-        self.players = data.data.map(p => {
-          return new Player(p);
-        })
+        data.data.map(p => {
+          self.players.push(new Player(p))
+        });
         self.initGame();
       }
     }
@@ -146,8 +167,8 @@ class Controller {
       }
       self.frameCount++;
 
-      self.camera.x = data[1][0];
-      self.camera.y = data[1][1];
+      self.camera.x = data[1];
+      self.camera.y = data[2];
       let offx = self.camera.x - center.offx;
       let offy = self.camera.y - center.offy;
 
@@ -162,7 +183,7 @@ class Controller {
 
       self.items.forEach(item => item.update());
 
-      let bulletDatas = data[2];
+      let bulletDatas = data[3];
       let updatedBullets = [];
       for (let bullet of self.bullets) {
         let index = bulletDatas.findIndex(bulletData => bulletData[2] == bullet.id);
@@ -191,7 +212,7 @@ class Controller {
         self.bullets.push(new Bullet(bulletDatas[k][2], bulletDatas[k][0], bulletDatas[k][1]))
       }
 
-      let hits = data[3];
+      let hits = data[4];
 
 
       hits.forEach(hit => {
@@ -227,6 +248,16 @@ class Controller {
     }
   }
 
+  listenToRoomDatas() {
+    self = this;
+    socket.listens[ROOMS] = function (data) {
+      self.rooms = data;
+      showRoom();
+    }
+  }
+
+
+
   sendNetSpeed(lastTime, fps, frameCount, deltaTime) {
     socket.send("NETSPEED", {
       lastTime, fps, frameCount, deltaTime
@@ -238,29 +269,7 @@ class Controller {
       return;
     }
 
-    let timestamp = Date.now();
-    let deltaTime = timestamp - this.lastTime;
 
-    if (deltaTime > 2000) {
-      this.bsc = 55;
-    }
-
-    if (this.frameCount > 10) {
-      deltaTime = (timestamp - this.lastTime) / this.frameCount;
-      if (deltaTime > 80) {
-        this.fps = 1000 / deltaTime
-        console.log("FPS: " + this.fps, "SPEED:" + deltaTime);
-        this.bsc == 55;
-      }
-      this.frameCount = 0;
-    }
-
-    if (this.bsc > 50) {
-      this.mode = "timeout";
-      this.stopInput()
-      toast("Internet speed is bad.")
-      this.sendNetSpeed(this.lastTime, this.fps, this.frameCount, deltaTime);
-    }
 
     this.effects.forEach((effect, i) => {
       effect.update();
@@ -278,11 +287,37 @@ class Controller {
     this.processing();
     this.updateTrail();
     if (this.status == "play" || this.status == "watch") {
+
+      let timestamp = Date.now();
+      let deltaTime = timestamp - this.lastTime;
+
+      if (deltaTime > 2000) {
+        this.bsc = 55;
+      }
+
+      if (this.frameCount > 10) {
+        deltaTime = (timestamp - this.lastTime) / this.frameCount;
+        if (deltaTime > 80) {
+          this.fps = 1000 / deltaTime
+          console.log("FPS: " + this.fps, "SPEED:" + deltaTime);
+          this.bsc == 55;
+        }
+        this.frameCount = 0;
+      }
+
+      if (this.bsc > 50) {
+        this.mode = "timeout";
+        this.stopInput()
+        toast("Internet speed is bad.")
+        this.sendNetSpeed(this.lastTime, this.fps, this.frameCount, deltaTime);
+      }
       this.touchCtl.update(this.status == "play");
     }
   }
 
   mapDraw() {
+    if (this.gameMap.square.length == 0)
+      return;
     let tileSize = this.squareWidthInPixels;
     mapContainer.removeChildren();
     const starti = Math.floor(this.camera.y / tileSize);
@@ -377,6 +412,21 @@ class Controller {
       }
     });
   }
+
+  clear() {
+    this.players = [];
+    this.bullets = [];
+    this.items = [];
+    this.processCashs = [];
+    mapContainer.removeChild();
+    itemContainer.removeChild();
+    bulletContainer.removeChild();
+    trailContainer.removeChild();
+    playerBContainer.removeChild();
+    playerWContainer.removeChild();
+    playerHContainer.removeChild();
+    effectContainer.removeChild();
+  }
 }
 
 class GameMap {
@@ -407,9 +457,13 @@ class Player {
   }
 
   setup(type) {
-    this.player = new PIXI.extras.AnimatedSprite(playerAnimationframes[type]);
-    this.player.animationSpeed = 0.2;
-    this.player.anchor.set(0.5, 0.5);
+    // this.player = new PIXI.extras.AnimatedSprite(playerAnimationframes[type]);
+    // this.player.animationSpeed = 0.2;
+    // this.player.anchor.set(0.5, 0.5);
+
+    this.player = new PIXI.Graphics();
+
+
     this.border = new PIXI.Graphics();
 
     this.take = new PIXI.Sprite(PIXI.loader.resources['pistol'].texture);
@@ -452,9 +506,17 @@ class Player {
     this.health = info[playerinfokey.health];
     let x = info[playerinfokey.x] - offx;
     let y = info[playerinfokey.y] - offy;
-    this.player.width = info[playerinfokey.size] * 2;
-    this.player.height = info[playerinfokey.size] * 2;
-    this.player.position.set(x, y);
+    // this.player.width = info[playerinfokey.size] * 2;
+    // this.player.height = info[playerinfokey.size] * 2;
+
+
+    this.player.clear();
+    this.player.lineStyle(2, 0x1a1a1a, .5);
+    this.player.beginFill(0xffaa00);
+    this.player.drawCircle(x, y, info[playerinfokey.size]);
+    this.player.endFill();
+    // this.player.position.set(x, y);
+
     // playerSprite.rotation = player[playerinfokey.direction];
     this.status = info[playerinfokey.status];
     let _distance = itemInfos[info[playerinfokey.itemType]].distance;
@@ -493,17 +555,17 @@ class Player {
       this.header.alpha = 1;
     }
 
-    if (distance(this.x, this.y, info[playerinfokey.x], info[playerinfokey.y]) > 0.1) {
-      this.x = info[playerinfokey.x];
-      this.y = info[playerinfokey.y];
-      if (!this.player.playing) {
-        this.player.play();
-      }
-    } else {
-      if (this.player.playing) {
-        this.player.stop();
-      }
-    }
+    // if (distance(this.x, this.y, info[playerinfokey.x], info[playerinfokey.y]) > 0.1) {
+    //   this.x = info[playerinfokey.x];
+    //   this.y = info[playerinfokey.y];
+    //   if (!this.player.playing) {
+    //     this.player.play();
+    //   }
+    // } else {
+    //   if (this.player.playing) {
+    //     this.player.stop();
+    //   }
+    // }
 
     this.take.rotation = info[playerinfokey.direction];
     this.take.width = itemInfos[info[playerinfokey.itemType]].w;
@@ -512,12 +574,10 @@ class Player {
   }
 
   hidePlayer() {
-    if (this.player.visible) {
-      this.border.visible = false;
-      this.player.visible = false;
-      this.take.visible = false;
-      this.header.visible = false;
-    }
+    this.border.visible = false;
+    this.player.visible = false;
+    this.take.visible = false;
+    this.header.visible = false;
   }
 
   removePlayer() {
@@ -689,7 +749,6 @@ class SmallMapDraw {
     this.mainPlayer = new PIXI.Graphics();
     this.stage.addChild(this.mainPlayer);
     this.stage.x = -10;
-    console.log(mainContainer)
     mainContainer.addChild(this.stage);
   }
 

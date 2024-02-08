@@ -12,6 +12,8 @@ module.exports.SEND_MSG = '9'
 module.exports.DEATH = "10";
 module.exports.PLAY_OUT = '11';
 module.exports.WATCHING = '12';
+module.exports.JOIN_ROOM = "13";
+module.exports.ROOMS = '14';
 
 module.exports.HITBODY = "0";
 module.exports.HITBRICK = "2";

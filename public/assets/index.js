@@ -11,8 +11,8 @@ let TERRAIN_TYPES = {
 
 function Terrain(pathArg) {
     this.sprite = new PIXI.Sprite(PIXI.loader.resources[TERRAIN_TYPES[pathArg]].texture);
-    this.sprite.width=50;
-    this.sprite.height=50;
+    this.sprite.width = 50;
+    this.sprite.height = 50;
 }
 
 let UPDATE_KEY = "0";
@@ -29,6 +29,8 @@ let SEND_MSG = '9'
 let DEATH = "10";
 let PLAY_OUT = "11";
 let WATCHING = '12';
+let JOIN_ROOM = "13";
+let ROOMS = "14";
 
 let HITBODY = "0";
 let HITBRICK = "2";
@@ -62,6 +64,19 @@ let ITEMS = {
     WEAPON6: 6,
     HEALTH: 7,
     HMEDCINE: 8
+}
+
+
+
+
+let keyInfos = { "0": 48, "1": 49, "2": 50, "3": 51, "4": 52, "5": 53, "6": 54, "7": 55, "8": 56, "9": 57, "S": 83, "A": 65, "D": 68, "F": 70, "W": 87, "Q": 81, "E": 69, "R": 82, "K": 75, "L": 76, "H": 72, "I": 73, "O": 79, "P": 80, "U": 85, "Y": 89, "T": 84, "G": 71, "J": 74, "Z": 90, "X": 88, "C": 67, "M": 77, "N": 78, "B": 66, "V": 86, "LEFT": 37, "DOWN": 40, "RIGHT": 39, "UP": 38 };
+
+let keydatas = [];
+for (let k in keyInfos) {
+    keydatas.push({
+        key: k,
+        value: keyInfos[k]
+    })
 }
 
 
@@ -116,7 +131,6 @@ function WebSocketController(url) {
                 toast(data.message);
             } else {
                 toast(data.message);
-                loadinghidden();
             }
         }
 
@@ -140,7 +154,7 @@ let itemInfos = {
         sprite: "shield",
         w: 20,
         h: 60,
-        distance: 20
+        distance: 25
     },
     8: {
         sprite: "hidden_medicine",
@@ -151,37 +165,37 @@ let itemInfos = {
         sprite: "pistol",
         w: 30,
         h: 18,
-        distance: 10
+        distance: 15
     },
     6: {
         sprite: "revolver",
         w: 40,
         h: 20,
-        distance: 10
+        distance: 15
     },
     2: {
         sprite: "doublePistols",
         w: 30,
         h: 35,
-        distance: 10
+        distance: 15
     },
     3: {
         sprite: "rifle",
         w: 73,
         h: 18,
-        distance: 10
+        distance: 15
     },
     4: {
         sprite: "smg",
         w: 50,
         h: 20,
-        distance: 10
+        distance: 15
     },
     5: {
         sprite: "gatling",
         w: 90,
         h: 33,
-        distance: 10
+        distance: 15
     }
 };
 
@@ -241,7 +255,6 @@ $(document).ready(function () {
         let userPassW = document.getElementById("userPassW").value;
         if (userNick != "") {
             socket.send(LOGIN, { userNick, userPassW });
-            loadingshow();
         } else {
             alert("please enter name")
         }
@@ -450,7 +463,52 @@ $(document).ready(function () {
         console.log(3)
         $("#setting_modal").modal("show");
     })
+
+
+
+    $("#upkey").html(`${keydatas.map(info => {
+        return `<a class="dropdown-item" onclick="setKey('${info.value}','up')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#leftkey").html(`${keydatas.map(info => {
+        return `<a class="dropdown-item" onclick="setKey('${info.value}','left')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#rightkey").html(`${keydatas.map(info => {
+        return `<a class="dropdown-item" onclick="setKey('${info.value}','right')" href="#">${info.key}</a>`
+    })}`);
+
+    $("#downkey").html(`${keydatas.map(info => {
+        return `<a class="dropdown-item" onclick="setKey('${info.value}','down')" href="#">${info.key}</a>`
+    })}`);
+
+
+    if (localStorage.getItem("game_setting")) {
+        let settings = JSON.parse(localStorage.getItem("game_setting"));
+        controller.settings = settings;
+        showKey(settings.key['up'], 'up');
+        showKey(settings.key['left'], 'left');
+        showKey(settings.key['right'], 'right');
+        showKey(settings.key['down'], 'down');
+    }
 })
+
+
+
+function showKey(value, type) {
+    let i = keydatas.findIndex(k => k.value == value);
+    if (i != -1) {
+        $("#" + type + "_key").html(keydatas[i].key)
+    }
+}
+
+function setKey(value, key) {
+    controller.settings.key[key] = value;
+    showKey(value, key);
+    localStorage.setItem("game_setting", JSON.stringify(controller.settings));
+}
+
+
 
 function distance(x1, y1, x2, y2) {
     const deltaX = x2 - x1;
