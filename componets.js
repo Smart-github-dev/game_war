@@ -27,13 +27,13 @@ class Terrain {
 }
 
 
-const sand = new Terrain(3, TERRAIN_SAND, 0, 1);
+const sand = new Terrain(4, TERRAIN_SAND, 0, 1);
 const edge = new Terrain(3, TERRAIN_EDGE, 0, 0);
-const grass = new Terrain(5, TERRAIN_GRASS, 0, 1);
-const water = new Terrain(2, TERRAIN_WATER, 0, 1);
-const lava = new Terrain(7, TERRAIN_LAVA, 5, 1);
+const grass = new Terrain(5.5, TERRAIN_GRASS, 0, 1);
+const water = new Terrain(3, TERRAIN_WATER, 0, 1);
+const lava = new Terrain(8, TERRAIN_LAVA, 5, 1);
 const brick = new Terrain(3, TERRAIN_BRICK, 0, 0);
-const floor = new Terrain(5, TERRAIN_FLOOR, 0, 1);
+const floor = new Terrain(6, TERRAIN_FLOOR, 0, 1);
 
 class Point {
   constructor(xArg, yArg) {
