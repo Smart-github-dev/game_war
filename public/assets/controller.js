@@ -64,7 +64,6 @@ class Controller {
 
   joinRequest(id) {
     if (this.settings.roomid != id) {
-      loadingshow();
       socket.send(JOIN_ROOM, id);
     }
   }
@@ -92,6 +91,7 @@ class Controller {
       self.settings.roomid = id;
       self.clear();
       showRoom();
+      loadingshow();
       self.fetchData(function () {
         loadinghidden();
       });
