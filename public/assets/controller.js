@@ -664,12 +664,12 @@ class Entry {
 class LeaderBoard {
   constructor() {
     this.stage = new PIXI.Container();
-    let leaderboardBackground = new PIXI.Graphics();
-    leaderboardBackground.lineStyle(.5, 0x0073e6, 0.7);
-    leaderboardBackground.beginFill('black', 0.3);
-    leaderboardBackground.drawRoundedRect(790, 10, 200, 200, 10);
-    leaderboardBackground.endFill();
-    this.stage.addChild(leaderboardBackground);
+    // let leaderboardBackground = new PIXI.Graphics();
+    // leaderboardBackground.lineStyle(.5, 0x0073e6, 0.7);
+    // leaderboardBackground.beginFill('black', 0.3);
+    // leaderboardBackground.drawRoundedRect(790, 10, 200, 200, 10);
+    // leaderboardBackground.endFill();
+    // this.stage.addChild(leaderboardBackground);
 
     let leaderboardVerticalLine = new PIXI.Graphics();
     leaderboardVerticalLine.beginFill(0x0073e6, 0.7);
@@ -686,13 +686,13 @@ class LeaderBoard {
     this.stage.addChild(leaderboardHorizontalLine);
 
     let leaderboardTitle = new PIXI.Text("NICK              KILLS");
-    leaderboardTitle.style = { fill: 'white', strokeThickness: 0, fontSize: 15 };
+    leaderboardTitle.style = { fill: 'white', strokeThickness: 0, fontSize: 13 };
     leaderboardTitle.position.set(850, 20);
     this.stage.addChild(leaderboardTitle);
 
     this.playercound = new PIXI.Text("0");
     this.playercound.anchor.set(0.5, 0.5);
-    this.playercound.style = { fill: 'red', strokeThickness: 0, fontSize: 15 };
+    this.playercound.style = { fill: 'red', strokeThickness: 0, fontSize: 13 };
     this.playercound.position.set(950, 15);
     this.stage.addChild(this.playercound);
 
@@ -700,7 +700,7 @@ class LeaderBoard {
     for (let i = 0; i < 7; i++) {
       let entryName = new PIXI.Text("bot1");
       entryName.anchor.set(0.5, 0.5);
-      entryName.style = { fill: 'white', strokeThickness: 0, fontSize: 15 };
+      entryName.style = { fill: 'white', strokeThickness: 0, fontSize: 12 };
       entryName.position.set(860, 55 + i * 20);
       entryName.visible = false;
 
@@ -708,7 +708,7 @@ class LeaderBoard {
 
       let entryKills = new PIXI.Text(0);
       entryKills.anchor.set(0.5, 0.5);
-      entryKills.style = { fill: 'white', strokeThickness: 0, fontSize: 15 };
+      entryKills.style = { fill: 'white', strokeThickness: 0, fontSize: 12 };
       entryKills.position.set(960, 55 + i * 20);
       this.stage.addChild(entryKills);
       entryKills.visible = false;
