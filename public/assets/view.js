@@ -145,7 +145,7 @@ function setup(resources) {
 }
 
 function gameStart() {
-  if (this.settings.roomid != null) {
+  if (controller.settings.roomid != null) {
     toast("please join map")
     return;
   }
@@ -158,7 +158,7 @@ function gameStart() {
 }
 
 function gameWatch() {
-  if (this.settings.roomid != null) {
+  if (controller.settings.roomid != null) {
     toast("please join map")
     return;
   }
