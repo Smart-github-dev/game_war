@@ -222,7 +222,7 @@ btnOut.on('pointerdown', () => {
 
 const showRoom = () => {
   $("#rooms").html(controller.rooms.map(r => {
-    return `<button class="col-sm-4 m-1 btn border ${r.id == controller.roomid ? 'border-primary bg-info' : ''}" onclick='selectRoom("${r.id}")' >
+    return `<button class="col-sm-4 m-1 btn border ${r.id == controller.settings.roomid ? 'border-primary bg-info' : ''}" onclick='selectRoom("${r.id}")' >
       <div class="card room-card  ">
         <div class="card-body text-warning d-flex justify-content-center align-items-center" >
           ${r.name} : ${r.count}  
