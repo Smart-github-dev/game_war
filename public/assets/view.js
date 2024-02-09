@@ -145,10 +145,14 @@ function setup(resources) {
 }
 
 function gameStart() {
-  if (controller.settings.roomid != null) {
+  if (controller.settings.roomid == null) {
     toast("please join map")
     return;
   }
+
+  let i = controller.rooms.findIndex(r => r.id == controller.settings.roomid);
+  if (i == -1)
+    return;
   controller.bsc = 0;
   controller.newPlayer();
   $("#main-page").hide(200);
@@ -158,10 +162,14 @@ function gameStart() {
 }
 
 function gameWatch() {
-  if (controller.settings.roomid != null) {
+  if (controller.settings.roomid == null) {
     toast("please join map")
     return;
   }
+
+  let i = controller.rooms.findIndex(r => r.id == controller.settings.roomid);
+  if (i == -1)
+    return;
   controller.bsc = 0;
   socket.send(WATCHING);
   $("#main-page").hide(200);
