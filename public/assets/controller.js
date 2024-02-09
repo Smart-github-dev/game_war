@@ -100,12 +100,20 @@ class Controller {
 
   listenToFetchRes() {
     let self = this;
+
+    // bulletContainer.removeChild();
+    // trailContainer.removeChild();
+
+    // effectContainer.removeChild();
+
     socket.listens[FETCH_RES] = function (data) {
       if (data.key == FETCH_MAP) {
+        mapContainer.removeChild();
         controller.gameMap.square = data.data.map(r => r.map(c => new Terrain(c)));
         socket.send(FETCH_REQ, FETCH_ITEMS);
       }
       if (data.key == FETCH_ITEMS) {
+        // itemContainer.removeChild();
         data.data.forEach(item => {
           self.items.push(new Item(
             item.id,
@@ -118,6 +126,9 @@ class Controller {
         socket.send(FETCH_REQ, FETCH_PLAYERS);
       }
       if (data.key == FETCH_PLAYERS) {
+        playerBContainer.removeChild();
+        playerWContainer.removeChild();
+        playerHContainer.removeChild();
         data.data.map(p => {
           self.players.push(new Player(p))
         });
