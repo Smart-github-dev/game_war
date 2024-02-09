@@ -29,6 +29,7 @@ class Controller {
     this.settings = {
       audio: true,
       music: false,
+      roomid: null,
       key: {
         up: 87,
         down: 83,
@@ -40,7 +41,6 @@ class Controller {
     this.smallMap = new SmallMapDraw();
     this.touchCtl;
 
-    this.roomid = null;
     this.rooms = [];
     this.players = [];
     this.bullets = [];
@@ -63,7 +63,7 @@ class Controller {
   }
 
   joinRequest(id) {
-    if (this.roomid != id) {
+    if (this.settings.roomid != id) {
       socket.send(JOIN_ROOM, id);
     }
   }
@@ -88,7 +88,7 @@ class Controller {
   listenToJoined() {
     let self = this;
     socket.listens[JOIN_ROOM] = function (id) {
-      self.roomid = id;
+      self.settings.roomid = id;
       self.clear();
       self.fetchData(function () {
         showRoom();
@@ -411,6 +411,11 @@ class Controller {
         trailContainer.removeChild(trailParticle)
       }
     });
+  }
+
+  settingUp(key, value) {
+    this.settings[key] = value;
+    localStorage.setItem("game_setting", JSON.stringify(this.settings));
   }
 
   clear() {

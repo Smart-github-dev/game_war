@@ -145,6 +145,10 @@ function setup(resources) {
 }
 
 function gameStart() {
+  if (this.settings.roomid != null) {
+    toast("please join map")
+    return;
+  }
   controller.bsc = 0;
   controller.newPlayer();
   $("#main-page").hide(200);
@@ -154,6 +158,10 @@ function gameStart() {
 }
 
 function gameWatch() {
+  if (this.settings.roomid != null) {
+    toast("please join map")
+    return;
+  }
   controller.bsc = 0;
   socket.send(WATCHING);
   $("#main-page").hide(200);

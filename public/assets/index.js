@@ -434,24 +434,22 @@ $(document).ready(function () {
 
     $("#music").click(function () {
         if (controller.settings.music) {
-            controller.settings.music = false;
+            controller.settingsUp('music', false);
             PIXI.sound.stop('bgSound');
         } else {
             PIXI.sound.play('bgSound');
-            controller.settings.music = true;
+            controller.settingsUp('music', true);
         }
         $("#music").html(`<img src="./assets/img/music_${controller.settings.music ? 'o' : 'f'}.svg" alt="music_icon" width="50px" height="50px">`);
-        localStorage.setItem("game_setting", JSON.stringify(controller.settings));
     })
 
     $("#audio").click(function () {
         if (controller.settings.audio) {
-            controller.settings.audio = false;
+            controller.settingsUp('audio', false);
         } else {
-            controller.settings.audio = true;
+            controller.settingsUp('audio', true);
         }
         $("#audio").html(`<img src="./assets/img/audio_${controller.settings.audio ? 'o' : 'f'}.svg" alt="audio_icon" width="50px" height="50px">`);
-        localStorage.setItem("game_setting", JSON.stringify(controller.settings));
     })
 
     $("#logout").click(function () {
