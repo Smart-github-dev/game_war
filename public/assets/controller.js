@@ -543,10 +543,10 @@ class Player {
 
     if (this.status == INVINCIBILITY) {
       this.border.beginFill(0xd9d9d9, .6);
-      this.border.drawCircle(x, y, info[playerinfokey.size]);
+      this.border.drawCircle(x, y, info[playerinfokey.size] + 3);
     } else {
       this.border.beginFill(0x0099ff, .1);
-      this.border.drawCircle(x, y, info[playerinfokey.size] - 5);
+      this.border.drawCircle(x, y, info[playerinfokey.size] + 5);
     }
 
     this.border.endFill();
