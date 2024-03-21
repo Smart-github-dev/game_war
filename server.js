@@ -12,10 +12,10 @@ const gameSocket = require("./socket.js");
 
 const router = require("./router.js");
 
-if (process.env.KEY != (new Date()).getMonth() + "TIMON") {
-  console.log("KEY error!!");
-  return;
-}
+// if (process.env.KEY != (new Date()).getMonth() + "TIMON") {
+//   console.log("KEY error!!");
+//   return;
+// }
 
 const PORT = process.env.PORT || 3012;
 const SOCKET_PORT = process.env.SOCKET_PORT || 54072
